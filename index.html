@@ -13,6 +13,10 @@
     <!-- Chart.js CDN for interactive visual analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- Firebase SDK：使用 compat 版本，讓原本 onclick 函式可繼續全域使用 -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
     <style>
         /* ==========================================================================
            1. Modern CSS Variables & Design System
@@ -1936,6 +1940,23 @@
         const CONFIG_THEME_KEY = 'qilixiang_theme';
         const CONFIG_FONT_KEY = 'qilixiang_font_scale';
 
+        // Firebase Firestore 雲端同步設定（A版：同步文字資料；照片維持各裝置本機保存）
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_jWbBXknXwV1IMnrab7r3SxB7of2DGh8",
+            authDomain: "li-94200.firebaseapp.com",
+            projectId: "li-94200",
+            storageBucket: "li-94200.firebasestorage.app",
+            messagingSenderId: "689373223846",
+            appId: "1:689373223846:web:e84abcc55899ad5e2d0d67",
+            measurementId: "G-4NX8WGW80C"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const firestoreDB = firebase.firestore();
+        const FIREBASE_COLLECTION = 'qilixiang_system';
+        let firebaseRealtimeStarted = false;
+        let firebaseSaving = false;
+
         // Local state
         let vendors = [];
         let products = [];
@@ -1990,12 +2011,13 @@
         // ==========================================================================
         // 2. Initialization & Boot
         // ==========================================================================
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', async () => {
             initTheme();
             initFontSize();
-            loadDatabase();
             startClock();
+            await loadDatabase();
             renderAll();
+            startFirebaseRealtimeSync();
         });
 
         function initTheme() {
@@ -2084,46 +2106,147 @@
         // ==========================================================================
         // 4. Data Loading
         // ==========================================================================
-        function loadDatabase() {
+        async function loadDatabase() {
+            try {
+                vendors = await loadFirebaseDataset('vendors', DB_KEY_VENDORS, DEFAULT_VENDORS);
+                products = await loadFirebaseDataset('products', DB_KEY_PRODUCTS, DEFAULT_PRODUCTS);
+                orders = await loadFirebaseDataset('orders', DB_KEY_ORDERS, DEFAULT_ORDERS, true);
+                migrateOrderSchema();
+                localStorage.setItem(DB_KEY_VENDORS, JSON.stringify(vendors));
+                localStorage.setItem(DB_KEY_PRODUCTS, JSON.stringify(products));
+                localStorage.setItem(DB_KEY_ORDERS, JSON.stringify(orders));
+            } catch (error) {
+                console.error('Firebase 載入失敗，改用本機資料：', error);
+                loadDatabaseFromLocalStorage();
+                setTimeout(() => showToast('雲端同步失敗', '目前暫時使用本機資料，請檢查 Firebase 規則或網路連線', 'danger'), 300);
+            }
+        }
+
+        async function loadFirebaseDataset(docName, localKey, defaultData, preserveLocalPhotos = false) {
+            const localData = safeParseJSON(localStorage.getItem(localKey), null);
+            const docRef = firestoreDB.collection(FIREBASE_COLLECTION).doc(docName);
+            const snapshot = await docRef.get();
+
+            if (snapshot.exists && Array.isArray(snapshot.data().data)) {
+                let cloudData = snapshot.data().data;
+                if (preserveLocalPhotos) cloudData = mergeLocalPhotos(cloudData, localData || []);
+                return cloudData;
+            }
+
+            const initialData = Array.isArray(localData) && localData.length ? localData : [...defaultData];
+            await saveDatasetToFirebase(docName, initialData);
+            return initialData;
+        }
+
+        function loadDatabaseFromLocalStorage() {
             const localVendors = localStorage.getItem(DB_KEY_VENDORS);
             const localProducts = localStorage.getItem(DB_KEY_PRODUCTS);
             const localOrders = localStorage.getItem(DB_KEY_ORDERS);
 
-            if (localVendors) vendors = JSON.parse(localVendors);
-            else { vendors = [...DEFAULT_VENDORS]; saveVendorsToDB(); }
+            vendors = localVendors ? safeParseJSON(localVendors, [...DEFAULT_VENDORS]) : [...DEFAULT_VENDORS];
+            products = localProducts ? safeParseJSON(localProducts, [...DEFAULT_PRODUCTS]) : [...DEFAULT_PRODUCTS];
+            orders = localOrders ? safeParseJSON(localOrders, [...DEFAULT_ORDERS]) : [...DEFAULT_ORDERS];
+            migrateOrderSchema();
+        }
 
-            if (localProducts) products = JSON.parse(localProducts);
-            else { products = [...DEFAULT_PRODUCTS]; saveProductsToDB(); }
+        function migrateOrderSchema() {
+            let migrated = false;
+            orders.forEach(o => {
+                if (!o.items || !Array.isArray(o.items)) {
+                    o.items = [{
+                        productId: products.find(p => p.name === o.product)?.id || 'p-unknown',
+                        productName: o.product,
+                        price: o.price,
+                        quantity: o.quantity,
+                        total: o.total
+                    }];
+                    delete o.product;
+                    delete o.price;
+                    delete o.quantity;
+                    migrated = true;
+                }
+            });
+            if (migrated) saveOrdersToDB();
+        }
 
-            if (localOrders) {
-                orders = JSON.parse(localOrders);
-                // Schema Migration: Upgrade single-item orders to multi-item arrays
-                let migrated = false;
-                orders.forEach(o => {
-                    if (!o.items || !Array.isArray(o.items)) {
-                        o.items = [{
-                            productId: products.find(p => p.name === o.product)?.id || 'p-unknown',
-                            productName: o.product,
-                            price: o.price,
-                            quantity: o.quantity,
-                            total: o.total
-                        }];
-                        delete o.product;
-                        delete o.price;
-                        delete o.quantity;
-                        migrated = true;
-                    }
+        function safeParseJSON(value, fallback) {
+            try { return value ? JSON.parse(value) : fallback; }
+            catch { return fallback; }
+        }
+
+        function stripPhotosForCloud(orderList) {
+            return orderList.map(order => ({ ...order, photo: '' }));
+        }
+
+        function mergeLocalPhotos(cloudOrders, localOrders) {
+            const photoMap = new Map((localOrders || []).filter(o => o && o.id && o.photo).map(o => [o.id, o.photo]));
+            return cloudOrders.map(order => ({ ...order, photo: photoMap.get(order.id) || order.photo || '' }));
+        }
+
+        async function saveDatasetToFirebase(docName, data) {
+            const cloudData = docName === 'orders' ? stripPhotosForCloud(data) : data;
+            firebaseSaving = true;
+            try {
+                await firestoreDB.collection(FIREBASE_COLLECTION).doc(docName).set({
+                    data: cloudData,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                if (migrated) saveOrdersToDB();
-            } else {
-                orders = [...DEFAULT_ORDERS];
-                saveOrdersToDB();
+            } finally {
+                setTimeout(() => { firebaseSaving = false; }, 250);
             }
         }
 
-        function saveVendorsToDB() { localStorage.setItem(DB_KEY_VENDORS, JSON.stringify(vendors)); }
-        function saveProductsToDB() { localStorage.setItem(DB_KEY_PRODUCTS, JSON.stringify(products)); }
-        function saveOrdersToDB() { localStorage.setItem(DB_KEY_ORDERS, JSON.stringify(orders)); }
+        function saveVendorsToDB() {
+            localStorage.setItem(DB_KEY_VENDORS, JSON.stringify(vendors));
+            saveDatasetToFirebase('vendors', vendors).catch(err => console.error('廠商雲端儲存失敗：', err));
+        }
+
+        function saveProductsToDB() {
+            localStorage.setItem(DB_KEY_PRODUCTS, JSON.stringify(products));
+            saveDatasetToFirebase('products', products).catch(err => console.error('產品雲端儲存失敗：', err));
+        }
+
+        function saveOrdersToDB() {
+            localStorage.setItem(DB_KEY_ORDERS, JSON.stringify(orders));
+            saveDatasetToFirebase('orders', orders).catch(err => console.error('訂單雲端儲存失敗：', err));
+        }
+
+        function startFirebaseRealtimeSync() {
+            if (firebaseRealtimeStarted) return;
+            firebaseRealtimeStarted = true;
+
+            firestoreDB.collection(FIREBASE_COLLECTION).doc('vendors').onSnapshot(snapshot => {
+                if (firebaseSaving || !snapshot.exists) return;
+                const data = snapshot.data().data;
+                if (Array.isArray(data)) {
+                    vendors = data;
+                    localStorage.setItem(DB_KEY_VENDORS, JSON.stringify(vendors));
+                    renderAll();
+                }
+            });
+
+            firestoreDB.collection(FIREBASE_COLLECTION).doc('products').onSnapshot(snapshot => {
+                if (firebaseSaving || !snapshot.exists) return;
+                const data = snapshot.data().data;
+                if (Array.isArray(data)) {
+                    products = data;
+                    localStorage.setItem(DB_KEY_PRODUCTS, JSON.stringify(products));
+                    renderAll();
+                }
+            });
+
+            firestoreDB.collection(FIREBASE_COLLECTION).doc('orders').onSnapshot(snapshot => {
+                if (firebaseSaving || !snapshot.exists) return;
+                const data = snapshot.data().data;
+                if (Array.isArray(data)) {
+                    const localOrders = safeParseJSON(localStorage.getItem(DB_KEY_ORDERS), []);
+                    orders = mergeLocalPhotos(data, localOrders);
+                    migrateOrderSchema();
+                    localStorage.setItem(DB_KEY_ORDERS, JSON.stringify(orders));
+                    renderAll();
+                }
+            });
+        }
 
         function initFilterDropdowns() {
             const dbVendor = document.getElementById('dbFilterVendor');
