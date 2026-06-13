@@ -1,0 +1,3442 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>七里香下游拿貨管理系統 - 行動控制台</title>
+    
+    <!-- Google Fonts: Outfit & Noto Sans TC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js CDN for interactive visual analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* ==========================================================================
+           1. Modern CSS Variables & Design System
+           ========================================================================== */
+        :root {
+            /* Font Size Scaler */
+            --font-base-size: 16px;
+
+            /* Theme: Dark (Default) */
+            --bg-body: #0b0f19;
+            --bg-card: rgba(20, 26, 42, 0.75);
+            --bg-card-hover: rgba(28, 36, 58, 0.85);
+            --bg-input: rgba(255, 255, 255, 0.04);
+            --bg-input-focus: rgba(255, 255, 255, 0.08);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-focus: var(--accent-orange);
+            
+            /* Typography Colors */
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --text-on-accent: #ffffff;
+
+            /* Accent & Semantic Colors */
+            --accent-orange: #ff6b3b;
+            --accent-orange-rgb: 255, 107, 59;
+            --accent-gold: #ffb300;
+            --accent-gold-rgb: 255, 179, 0;
+            --color-success: #10b981;
+            --color-success-rgb: 16, 185, 129;
+            --color-danger: #ef4444;
+            --color-danger-rgb: 239, 68, 68;
+            --color-info: #3b82f6;
+            --color-info-rgb: 59, 130, 246;
+            
+            /* UI Polish */
+            --glass-blur: blur(16px);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.25);
+            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.35);
+            --shadow-orange: 0 0 20px rgba(255, 107, 59, 0.25);
+            --border-radius-sm: 0.5rem;
+            --border-radius-md: 0.75rem;
+            --border-radius-lg: 1.25rem;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Light Theme Tokens */
+        [data-theme="light"] {
+            --bg-body: #f4f6fa;
+            --bg-card: rgba(255, 255, 255, 0.85);
+            --bg-card-hover: rgba(255, 255, 255, 0.95);
+            --bg-input: rgba(0, 0, 0, 0.03);
+            --bg-input-focus: rgba(0, 0, 0, 0.05);
+            --border-color: rgba(0, 0, 0, 0.08);
+            
+            --text-primary: #1f2937;
+            --text-secondary: #4b5563;
+            --text-muted: #9ca3af;
+            --text-on-accent: #ffffff;
+            
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.12);
+            --shadow-orange: 0 4px 20px rgba(255, 107, 59, 0.15);
+        }
+
+        /* Apply Base Font Size Dynamically */
+        html {
+            font-size: var(--font-base-size);
+            transition: font-size 0.2s ease;
+        }
+
+        /* ==========================================================================
+           2. Reset & Core Layout
+           ========================================================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(var(--accent-orange-rgb), 0.08) 0px, transparent 40%),
+                radial-gradient(at 100% 100%, rgba(var(--accent-gold-rgb), 0.05) 0px, transparent 40%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 1rem 1rem 5.5rem 1rem;
+            transition: background-color 0.3s, color 0.3s;
+            line-height: 1.5;
+        }
+
+        @media (min-width: 769px) {
+            body {
+                padding: 1.5rem;
+            }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        /* ==========================================================================
+           3. UI Components & Navigation Tabs (Desktop vs Mobile)
+           ========================================================================== */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+        }
+
+        .desktop-nav {
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.35rem;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid var(--border-color);
+            align-items: center;
+        }
+
+        [data-theme="light"] .desktop-nav {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        @media (max-width: 768px) {
+            .desktop-nav {
+                display: none;
+            }
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab-btn.active {
+            color: var(--text-on-accent);
+            background: linear-gradient(135deg, var(--accent-orange), #ff8a5c);
+            box-shadow: 0 4px 12px rgba(var(--accent-orange-rgb), 0.25);
+            font-weight: 600;
+        }
+
+        /* Mobile Bottom Navigation Bar */
+        .mobile-bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4.2rem;
+            background: rgba(18, 25, 41, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-color);
+            z-index: 90;
+            grid-template-columns: repeat(3, 1fr);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        [data-theme="light"] .mobile-bottom-nav {
+            background: rgba(255, 255, 255, 0.92);
+        }
+
+        @media (max-width: 768px) {
+            .mobile-bottom-nav {
+                display: grid;
+            }
+        }
+
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-decoration: none;
+            gap: 0.25rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+        }
+
+        .mobile-nav-item.active {
+            color: var(--accent-orange);
+            font-weight: 700;
+        }
+
+        .mobile-nav-icon {
+            font-size: 1.35rem;
+        }
+
+        /* Tab Content Section */
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Buttons styling */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: var(--border-radius-sm);
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: var(--transition);
+            outline: none;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-orange), #ff8a5c);
+            color: var(--text-on-accent);
+            box-shadow: var(--shadow-orange);
+        }
+
+        .btn-secondary {
+            background: var(--bg-input);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-danger {
+            background: rgba(var(--color-danger-rgb), 0.1);
+            border: 1px solid rgba(var(--color-danger-rgb), 0.3);
+            color: var(--color-danger);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background: rgba(var(--color-success-rgb), 0.12);
+            color: var(--color-success);
+            border: 1px solid rgba(var(--color-success-rgb), 0.25);
+        }
+        .badge-success .badge-dot { background: var(--color-success); }
+
+        .badge-danger {
+            background: rgba(var(--color-danger-rgb), 0.12);
+            color: var(--color-danger);
+            border: 1px solid rgba(var(--color-danger-rgb), 0.25);
+        }
+        .badge-danger .badge-dot { background: var(--color-danger); }
+
+        .badge-warning {
+            background: rgba(var(--accent-gold-rgb), 0.12);
+            color: var(--accent-gold);
+            border: 1px solid rgba(var(--accent-gold-rgb), 0.25);
+        }
+        .badge-warning .badge-dot { background: var(--accent-gold); }
+
+        .badge-info {
+            background: rgba(var(--color-info-rgb), 0.12);
+            color: var(--color-info);
+            border: 1px solid rgba(var(--color-info-rgb), 0.25);
+        }
+        .badge-info .badge-dot { background: var(--color-info); }
+
+        /* ==========================================================================
+           4. Mobile Responsive Card List (Instead of heavy tables)
+           ========================================================================== */
+        .desktop-only-table {
+            display: block;
+        }
+        .mobile-only-cards {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .desktop-only-table {
+                display: none;
+            }
+            .mobile-only-cards {
+                display: flex;
+                flex-direction: column;
+                gap: 0.85rem;
+                padding: 0 0.5rem;
+            }
+        }
+
+        /* Mobile Card Style */
+        .mobile-order-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .m-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .m-card-date {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .m-card-body {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .m-card-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            flex-grow: 1;
+        }
+
+        .m-card-vendor {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .m-card-items-list {
+            margin-top: 0.35rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-left: 2px solid var(--accent-orange);
+            padding-left: 0.5rem;
+        }
+
+        .m-card-total {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--accent-orange);
+            font-family: 'Outfit';
+            margin-top: 0.25rem;
+        }
+
+        .m-card-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
+        }
+
+        .m-card-photo-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            object-fit: cover;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
+        .m-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border-color);
+            padding-top: 0.65rem;
+            margin-top: 0.25rem;
+        }
+
+        .m-card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .m-payment-checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .payment-toggle {
+            position: relative;
+            display: inline-block;
+            width: 42px;
+            height: 24px;
+        }
+
+        .payment-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-muted);
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--color-success);
+            border-color: var(--color-success);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(18px);
+            background-color: #fff;
+        }
+
+        .payment-time-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 0.15rem;
+        }
+
+        /* ==========================================================================
+           5. Layout Sections (Header & Page views)
+           ========================================================================== */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.75rem;
+            border-left: 6px solid var(--accent-orange);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-logo {
+            background: rgba(var(--accent-orange-rgb), 0.15);
+            border-radius: 12px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(var(--accent-orange-rgb), 0.3);
+            color: var(--accent-orange);
+            font-size: 1.5rem;
+        }
+
+        .header-title h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary) 50%, var(--accent-orange) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .header-title p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* DASHBOARD PAGE */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .stat-card {
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-color, var(--accent-orange));
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .stat-icon {
+            font-size: 1.2rem;
+            color: var(--accent-color, var(--accent-orange));
+            background: rgba(var(--accent-color-rgb, var(--accent-orange-rgb)), 0.1);
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.03em;
+        }
+
+        .stat-footer {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .dashboard-filters {
+            padding: 1rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            align-items: center;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+
+        .chart-card {
+            padding: 1.25rem;
+            min-height: 330px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chart-card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-container {
+            position: relative;
+            flex-grow: 1;
+            height: 270px;
+            width: 100%;
+        }
+
+        /* ORDER HISTORY PAGE */
+        .orders-control-bar {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .search-filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            align-items: center;
+        }
+
+        .search-box {
+            flex-grow: 2;
+            min-width: 250px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.6rem 1rem 0.6rem 2.25rem;
+            border-radius: var(--border-radius-sm);
+            font-size: 0.9rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-box input:focus {
+            border-color: var(--border-focus);
+            background: var(--bg-input-focus);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        .filter-select {
+            flex-grow: 1;
+            min-width: 110px;
+            position: relative;
+        }
+
+        .filter-select select {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.6rem 2rem 0.6rem 0.85rem;
+            border-radius: var(--border-radius-sm);
+            font-size: 0.9rem;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .filter-select select:focus {
+            border-color: var(--border-focus);
+            background: var(--bg-input-focus);
+        }
+
+        .filter-select::after {
+            content: '▼';
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        .date-range-popover {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            z-index: 10;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            padding: 1rem;
+            box-shadow: var(--shadow-lg);
+            margin-top: 0.5rem;
+            flex-direction: column;
+            gap: 0.75rem;
+            width: 260px;
+            backdrop-filter: var(--glass-blur);
+        }
+
+        .date-range-popover.active {
+            display: flex;
+        }
+
+        .date-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .date-input-group label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .date-input-group input {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.45rem;
+            border-radius: 4px;
+            outline: none;
+            font-size: 0.85rem;
+        }
+
+        /* Table design */
+        .table-card {
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .table-header-bar {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .table-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 0.8rem 1.25rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        [data-theme="light"] th {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        td {
+            padding: 0.85rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 0.35rem;
+        }
+
+        .btn-table-icon {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-table-icon:hover {
+            color: var(--accent-orange);
+            border-color: var(--accent-orange);
+            background: rgba(var(--accent-orange-rgb), 0.08);
+        }
+
+        .btn-table-delete:hover {
+            color: var(--color-danger);
+            border-color: var(--color-danger);
+            background: rgba(var(--color-danger-rgb), 0.08);
+        }
+
+        /* SETTINGS PAGE */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .settings-card {
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .settings-card-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+            font-size: 1.05rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mgmt-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            max-height: 260px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .mgmt-list {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .mgmt-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 0.6rem 0.85rem;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .mgmt-item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .mgmt-item-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .mgmt-item-sub {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .preference-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            background: var(--bg-input);
+            padding: 0.75rem 1rem;
+            border-radius: var(--border-radius-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .preference-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .preference-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .preference-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .font-adjuster {
+            display: flex;
+            background: rgba(0,0,0,0.15);
+            padding: 0.25rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .font-btn {
+            background: transparent;
+            border: none;
+            padding: 0.45rem 0.85rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .font-btn.active {
+            background: var(--accent-orange);
+            color: var(--text-on-accent);
+            font-weight: 600;
+        }
+
+        /* ==========================================================================
+           6. Forms & Bottom Sheet Modal for Mobile
+           ========================================================================== */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .form-group-full {
+            grid-column: span 2;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .form-group label .required {
+            color: var(--color-danger);
+            margin-left: 2px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.65rem 0.85rem;
+            border-radius: var(--border-radius-sm);
+            font-size: 0.9rem;
+            outline: none;
+            transition: var(--transition);
+            width: 100%;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent-orange);
+            background: var(--bg-input-focus);
+            box-shadow: 0 0 10px rgba(var(--accent-orange-rgb), 0.1);
+        }
+
+        .form-group select {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+            padding-right: 2rem;
+        }
+
+        /* Order Form Dynamic Rows */
+        .form-items-title-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .form-items-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        .form-item-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            background: rgba(0,0,0,0.1);
+            padding: 0.5rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        [data-theme="light"] .form-item-row {
+            background: rgba(0,0,0,0.02);
+        }
+
+        /* Desktop Modal Overlay standard layout */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-wrapper {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-lg);
+            width: 90%;
+            max-width: 580px; /* Expanded for item list space */
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-overlay.active .modal-wrapper {
+            transform: scale(1) translateY(0);
+        }
+
+        /* Mobile Bottom Sheet Styles */
+        @media (max-width: 768px) {
+            .modal-overlay {
+                align-items: flex-end;
+            }
+
+            .modal-wrapper {
+                width: 100%;
+                max-width: 100%;
+                border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+                transform: translateY(100%);
+                border-left: none;
+                border-right: none;
+                border-bottom: none;
+            }
+
+            .modal-overlay.active .modal-wrapper {
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .modal-close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.25rem;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close-btn:hover {
+            background: var(--bg-input-focus);
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 1.25rem;
+            overflow-y: auto;
+            max-height: 75vh;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Receipt Photo Lightbox Overlay */
+        .lightbox-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .lightbox-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .lightbox-img {
+            max-width: 90%;
+            max-height: 75vh;
+            border-radius: 8px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            object-fit: contain;
+        }
+
+        .lightbox-caption {
+            color: #fff;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Notification Toasts */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            pointer-events: none;
+            width: calc(100% - 2rem);
+            max-width: 380px;
+        }
+
+        .toast {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--shadow-lg);
+            padding: 0.85rem 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            pointer-events: all;
+            transform: translateY(-20px);
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s;
+            opacity: 0;
+            backdrop-filter: var(--glass-blur);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-content {
+            flex-grow: 1;
+        }
+
+        .toast-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .toast-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .toast-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .empty-state {
+            padding: 3rem 1.5rem;
+            text-align: center;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .empty-icon {
+            font-size: 2.2rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+
+    <div class="container">
+        <!-- ==========================================================================
+             Header Panel
+             ========================================================================== -->
+        <header class="glass-card header">
+            <div class="header-brand">
+                <div class="header-logo">🍢</div>
+                <div class="header-title">
+                    <h1>七里香下游拿貨管理系統</h1>
+                    <p>批發業務數據控制台 • 下游拿貨數量與帳款追蹤</p>
+                </div>
+            </div>
+            
+            <!-- Desktop Tab Menu -->
+            <nav class="desktop-nav">
+                <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')">
+                    📊 數據儀表板
+                </button>
+                <button class="tab-btn" data-tab="orders" onclick="switchTab('orders')">
+                    📋 拿貨記錄
+                </button>
+                <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">
+                    ⚙️ 系統設定
+                </button>
+            </nav>
+
+            <div class="header-right">
+                <div class="badge badge-info" id="systemClock">
+                    <span class="badge-dot"></span>
+                    <span id="clockText">0000-00-00 00:00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ==========================================================================
+             PAGE 1: DASHBOARD PAGE
+             ========================================================================== -->
+        <div id="tab-dashboard" class="tab-content active">
+            <!-- Summary Stats Grid -->
+            <section class="stats-grid">
+                <!-- Card 1: Total Revenue -->
+                <div class="glass-card stat-card" style="--accent-color: var(--accent-orange); --accent-color-rgb: var(--accent-orange-rgb);">
+                    <div class="stat-header">
+                        <span>總拿貨銷售額</span>
+                        <div class="stat-icon">💰</div>
+                    </div>
+                    <div class="stat-value" id="statTotalSales">NT$ 0</div>
+                    <div class="stat-footer">目前篩選訂單的總交易額</div>
+                </div>
+
+                <!-- Card 2: Total Quantity -->
+                <div class="glass-card stat-card" style="--accent-color: var(--accent-gold); --accent-color-rgb: var(--accent-gold-rgb);">
+                    <div class="stat-header">
+                        <span>總拿貨量 (包/串/箱)</span>
+                        <div class="stat-icon">🍢</div>
+                    </div>
+                    <div class="stat-value" id="statTotalQty">0</div>
+                    <div class="stat-footer">下游客戶累計進貨品項加總</div>
+                </div>
+
+                <!-- Card 3: Unpaid Amount -->
+                <div class="glass-card stat-card" style="--accent-color: var(--color-danger); --accent-color-rgb: var(--color-danger-rgb);">
+                    <div class="stat-header">
+                        <span>應收未結帳款</span>
+                        <div class="stat-icon">⚠️</div>
+                    </div>
+                    <div class="stat-value" id="statUnpaidAmount" style="color: var(--color-danger);">NT$ 0</div>
+                    <div class="stat-footer">目前未結清之下游款項</div>
+                </div>
+
+                <!-- Card 4: Downstream Clients -->
+                <div class="glass-card stat-card" style="--accent-color: var(--color-info); --accent-color-rgb: var(--color-info-rgb);">
+                    <div class="stat-header">
+                        <span>合作下游廠商</span>
+                        <div class="stat-icon">🤝</div>
+                    </div>
+                    <div class="stat-value" id="statVendorCount">0 家</div>
+                    <div class="stat-footer">已登錄下游客戶數量</div>
+                </div>
+            </section>
+
+            <!-- Dashboard Filters -->
+            <section class="glass-card dashboard-filters">
+                <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); margin-right: 0.5rem; display: flex; align-items: center; gap: 0.35rem;">
+                    <span>🔍 儀表板快篩：</span>
+                </div>
+                
+                <!-- Filter: Vendor -->
+                <div class="filter-select" style="max-width: 160px;">
+                    <select id="dbFilterVendor" onchange="handleDbFilterChange()">
+                        <option value="">所有廠商</option>
+                    </select>
+                </div>
+
+                <!-- Filter: Product Category -->
+                <div class="filter-select" style="max-width: 180px;">
+                    <select id="dbFilterProduct" onchange="handleDbFilterChange()">
+                        <option value="">所有產品</option>
+                    </select>
+                </div>
+
+                <!-- Filter: Payment Status -->
+                <div class="filter-select" style="max-width: 140px;">
+                    <select id="dbFilterPayment" onchange="handleDbFilterChange()">
+                        <option value="">付款 (全部)</option>
+                        <option value="paid">已結清</option>
+                        <option value="unpaid">未結清</option>
+                    </select>
+                </div>
+
+                <!-- Filter: Date Options -->
+                <div class="filter-select" style="max-width: 140px; position: relative;">
+                    <select id="dbFilterDate" onchange="handleDbDateFilterChange()">
+                        <option value="all">所有日期</option>
+                        <option value="today">今天</option>
+                        <option value="yesterday">昨天</option>
+                        <option value="this-week">本週</option>
+                        <option value="this-month">本月</option>
+                        <option value="custom">自訂區間...</option>
+                    </select>
+                    
+                    <!-- Date Range Popover -->
+                    <div class="date-range-popover" id="dbDateRangePopover">
+                        <div class="date-input-group">
+                            <label for="dbCustomStartDate">開始日期</label>
+                            <input type="date" id="dbCustomStartDate" onchange="handleDbFilterChange()">
+                        </div>
+                        <div class="date-input-group">
+                            <label for="dbCustomEndDate">結束日期</label>
+                            <input type="date" id="dbCustomEndDate" onchange="handleDbFilterChange()">
+                        </div>
+                        <button class="btn btn-primary" style="padding: 0.3rem; font-size: 0.75rem;" onclick="closeDbDateRangePopover()">確定</button>
+                    </div>
+                </div>
+
+                <button class="btn btn-secondary" style="padding: 0.45rem 0.75rem; font-size: 0.8rem;" onclick="resetDbFilters()">
+                    重設
+                </button>
+            </section>
+
+            <!-- Visual Charts Grid -->
+            <section class="charts-grid">
+                <!-- Sales Trend -->
+                <div class="glass-card chart-card">
+                    <div class="chart-card-title">
+                        <span>📈 拿貨趨勢分析 (金額與數量)</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="salesTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Vendor Share -->
+                <div class="glass-card chart-card">
+                    <div class="chart-card-title">
+                        <span>🎯 廠商進貨額分佈比例</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="vendorPieChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ==========================================================================
+             PAGE 2: ORDER HISTORY PAGE
+             ========================================================================== -->
+        <div id="tab-orders" class="tab-content">
+            <!-- Filter & Search Toolbar -->
+            <section class="glass-card orders-control-bar">
+                <div class="search-filter-row">
+                    <!-- Search Input -->
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="orderSearchInput" placeholder="搜尋下游客戶名稱、品項名稱、備註說明..." oninput="handleOrderFilterChange()">
+                    </div>
+
+                    <!-- Vendor filter -->
+                    <div class="filter-select">
+                        <select id="orderFilterVendor" onchange="handleOrderFilterChange()">
+                            <option value="">所有廠商</option>
+                        </select>
+                    </div>
+
+                    <!-- Product filter -->
+                    <div class="filter-select">
+                        <select id="orderFilterProduct" onchange="handleOrderFilterChange()">
+                            <option value="">所有產品</option>
+                        </select>
+                    </div>
+
+                    <!-- Payment filter -->
+                    <div class="filter-select">
+                        <select id="orderFilterPayment" onchange="handleOrderFilterChange()">
+                            <option value="">付款狀態 (全部)</option>
+                            <option value="paid">已結清</option>
+                            <option value="unpaid">未結清</option>
+                        </select>
+                    </div>
+
+                    <!-- Delivery filter -->
+                    <div class="filter-select">
+                        <select id="orderFilterDelivery" onchange="handleOrderFilterChange()">
+                            <option value="">出貨狀態 (全部)</option>
+                            <option value="shipped">已出貨</option>
+                            <option value="pending">待出貨</option>
+                        </select>
+                    </div>
+
+                    <!-- Date range -->
+                    <div class="filter-select" style="position: relative;">
+                        <select id="orderFilterDate" onchange="handleOrderDateFilterChange()">
+                            <option value="all">所有日期</option>
+                            <option value="today">今天</option>
+                            <option value="yesterday">昨天</option>
+                            <option value="this-week">本週</option>
+                            <option value="this-month">本月</option>
+                            <option value="custom">自訂區間...</option>
+                        </select>
+                        
+                        <!-- Popover -->
+                        <div class="date-range-popover" id="orderDateRangePopover">
+                            <div class="date-input-group">
+                                <label for="orderCustomStartDate">開始日期</label>
+                                <input type="date" id="orderCustomStartDate" onchange="handleOrderFilterChange()">
+                            </div>
+                            <div class="date-input-group">
+                                <label for="orderCustomEndDate">結束日期</label>
+                                <input type="date" id="orderCustomEndDate" onchange="handleOrderFilterChange()">
+                            </div>
+                            <button class="btn btn-primary" style="padding: 0.3rem; font-size: 0.75rem;" onclick="closeOrderDateRangePopover()">確定</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Trigger & Helper options -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                    <div>
+                        <button class="btn btn-primary" onclick="openOrderModal()">
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                            新增拿貨單
+                        </button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="btn btn-secondary" style="padding: 0.45rem 0.75rem; font-size: 0.8rem;" onclick="resetOrderFilters()">
+                            重設條件
+                        </button>
+                        <button class="btn btn-secondary" style="padding: 0.45rem 0.75rem; font-size: 0.8rem;" onclick="exportCSV()" title="匯出當前清單至 Excel">
+                            📥 匯出 Excel
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Table View / Mobile Cards View Container -->
+            <main class="glass-card table-card">
+                <div class="table-header-bar">
+                    <div class="table-title">
+                        📋 下游拿貨訂單明細
+                        <span id="ordersCountBadge" class="badge badge-info" style="margin-left: 0.5rem;">0 筆</span>
+                    </div>
+                </div>
+
+                <!-- Desktop table layout -->
+                <div class="table-responsive desktop-only-table">
+                    <table id="ordersTable">
+                        <thead>
+                            <tr>
+                                <th>交易日期</th>
+                                <th>下游客戶</th>
+                                <th>品項明細 (產品 × 數量)</th>
+                                <th style="text-align: right; width: 110px;">單價</th>
+                                <th style="text-align: right; width: 80px;">數量</th>
+                                <th style="text-align: right; width: 120px;">總金額 (NT$)</th>
+                                <th style="text-align: center; width: 80px;">收據/相片</th>
+                                <th style="text-align: center; width: 140px;">付款狀態 (勾選自動存時間)</th>
+                                <th style="text-align: center; width: 100px;">出貨狀態</th>
+                                <th>備註備忘</th>
+                                <th style="text-align: center; width: 90px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTableBody">
+                            <!-- JS populated -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile Card List layout -->
+                <div class="mobile-only-cards" id="ordersMobileCardsList">
+                    <!-- JS populated -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="tableEmptyState" class="empty-state" style="display: none;">
+                    <div class="empty-icon">📁</div>
+                    <h3>無相符拿貨單</h3>
+                    <p>找不到符合目前篩選條件的交易紀錄。</p>
+                </div>
+            </main>
+        </div>
+
+        <!-- ==========================================================================
+             PAGE 3: SETTINGS PAGE
+             ========================================================================== -->
+        <div id="tab-settings" class="tab-content">
+            <div class="settings-grid">
+                
+                <!-- Card A: Product Setting -->
+                <div class="glass-card settings-card">
+                    <div class="settings-card-header">
+                        <span>🍢 產品種類設定 (自訂單價)</span>
+                    </div>
+                    <form id="productForm" onsubmit="saveProduct(event)">
+                        <input type="hidden" id="productId">
+                        <div class="form-grid">
+                            <div class="form-group form-group-full">
+                                <label for="productName">產品名稱 <span class="required">*</span></label>
+                                <input type="text" id="productName" placeholder="例如：香脆椒鹽七里香" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="productUnit">計算單位 (包/箱/串) <span class="required">*</span></label>
+                                <input type="text" id="productUnit" placeholder="例如：包" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="productDefaultPrice">預設單價 (NT$) <span class="required">*</span></label>
+                                <input type="number" id="productDefaultPrice" min="0" placeholder="例如：120" required>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+                            <button type="button" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="resetProductForm()">重設</button>
+                            <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" id="productSubmitBtn">新增產品</button>
+                        </div>
+                    </form>
+                    
+                    <div class="vendor-list-container" style="border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                        <div class="vendor-list-header">現有產品品項</div>
+                        <div class="mgmt-list" id="settingsProductList">
+                            <!-- Product list rendered by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card B: Downstream Vendors Management -->
+                <div class="glass-card settings-card">
+                    <div class="settings-card-header">
+                        <span>🤝 下游攤商名單管理</span>
+                    </div>
+                    <form id="vendorForm" onsubmit="saveVendor(event)">
+                        <input type="hidden" id="vendorId">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="vendorName">攤商/客戶名稱 <span class="required">*</span></label>
+                                <input type="text" id="vendorName" placeholder="例如：三和夜市烤肉王" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="vendorPhone">聯絡電話</label>
+                                <input type="text" id="vendorPhone" placeholder="0912-345-678">
+                            </div>
+                            <div class="form-group form-group-full">
+                                <label for="vendorAddress">送貨地址</label>
+                                <input type="text" id="vendorAddress" placeholder="例如：攤位或店鋪地址">
+                            </div>
+                            <div class="form-group form-group-full">
+                                <label for="vendorRemarks">客戶合約/價格備註</label>
+                                <input type="text" id="vendorRemarks" placeholder="如：款項週結、每週二四送貨...">
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+                            <button type="button" class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="resetVendorForm()">重設</button>
+                            <button type="submit" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" id="vendorSubmitBtn">新增客戶</button>
+                        </div>
+                    </form>
+
+                    <div class="vendor-list-container" style="border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                        <div class="vendor-list-header">目前合作客戶</div>
+                        <div class="mgmt-list" id="settingsVendorList">
+                            <!-- Vendor list rendered by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card C: System Settings & Backup -->
+                <div class="glass-card settings-card" style="justify-content: flex-start;">
+                    <div class="settings-card-header">
+                        <span>⚙️ 系統偏好設定 & 外觀調整</span>
+                    </div>
+                    
+                    <!-- Font Adjustment -->
+                    <div class="preference-row">
+                        <div class="preference-info">
+                            <span class="preference-title">系統字體大小</span>
+                            <span class="preference-desc">調整整個網頁文字大小以利閱讀</span>
+                        </div>
+                        <div class="font-adjuster">
+                            <button class="font-btn" data-scale="14px" onclick="changeFontSize('14px')">小</button>
+                            <button class="font-btn active" data-scale="16px" onclick="changeFontSize('16px')">中</button>
+                            <button class="font-btn" data-scale="19px" onclick="changeFontSize('19px')">大</button>
+                            <button class="font-btn" data-scale="22px" onclick="changeFontSize('22px')">特大</button>
+                        </div>
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <div class="preference-row">
+                        <div class="preference-info">
+                            <span class="preference-title">深色/淺色主題模式</span>
+                            <span class="preference-desc">切換背景視覺配色</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="toggleTheme()">
+                                🌗 切換視覺外觀
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Database backup and recovery -->
+                    <div class="settings-card-header" style="margin-top: 1rem;">
+                        <span>📂 資料備份與全系統還原</span>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+                        <button class="btn btn-secondary" style="text-align: left; justify-content: flex-start;" onclick="exportBackup()">
+                            💾 導出完整備份檔 (JSON)
+                        </button>
+                        <button class="btn btn-secondary" style="text-align: left; justify-content: flex-start;" onclick="triggerImport()">
+                            📂 導入備份並還原資料庫
+                        </button>
+                        <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="handleImportFile(event)">
+                        
+                        <div style="border-top: 1px solid var(--border-color); margin-top: 0.5rem; padding-top: 0.85rem;">
+                            <button class="btn btn-danger" style="width: 100%; text-align: center;" onclick="resetDatabaseToDefault()">
+                                ⚠️ 重置資料庫為初始預設值
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         Mobile App Bottom Navigation Bar
+         ========================================================================== -->
+    <nav class="mobile-bottom-nav">
+        <button class="mobile-nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+            <span class="mobile-nav-icon">📊</span>
+            <span>數據儀表板</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="orders" onclick="switchTab('orders')">
+            <span class="mobile-nav-icon">📋</span>
+            <span>拿貨記錄</span>
+        </button>
+        <button class="mobile-nav-item" data-tab="settings" onclick="switchTab('settings')">
+            <span class="mobile-nav-icon">⚙️</span>
+            <span>系統設定</span>
+        </button>
+    </nav>
+
+    <!-- ==========================================================================
+         Modal: Add / Edit Order (Supports Multi-Items)
+         ========================================================================== -->
+    <div class="modal-overlay" id="orderModal">
+        <div class="modal-wrapper">
+            <div class="modal-header">
+                <h3 id="orderModalTitle">新增拿貨單</h3>
+                <button class="modal-close-btn" onclick="closeOrderModal()">×</button>
+            </div>
+            <div class="modal-body" style="padding: 1rem 1.25rem;">
+                <form id="orderForm" onsubmit="saveOrder(event)">
+                    <!-- Hidden field for Order ID when editing -->
+                    <input type="hidden" id="orderId">
+                    
+                    <div class="form-grid">
+                        <!-- Downstream Vendor Selection -->
+                        <div class="form-group form-group-full">
+                            <label for="orderVendor">下游客戶攤商 <span class="required">*</span></label>
+                            <select id="orderVendor" required>
+                                <option value="">-- 請選擇下游客戶 --</option>
+                            </select>
+                        </div>
+
+                        <!-- Date -->
+                        <div class="form-group form-group-full">
+                            <label for="orderDate">交易日期 <span class="required">*</span></label>
+                            <input type="date" id="orderDate" required>
+                        </div>
+
+                        <!-- MULTI-PRODUCT ITEM LIST (Requested by User) -->
+                        <div class="form-group form-group-full" style="border-top: 1px solid var(--border-color); padding-top: 0.75rem; margin-top: 0.5rem;">
+                            <div class="form-items-title-bar">
+                                <span style="font-weight: 700; font-size: 0.9rem; color: var(--accent-orange);">🍢 拿貨品項清單</span>
+                                <button type="button" class="btn btn-primary" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" onclick="addFormItemRow()">
+                                    ➕ 新增項目
+                                </button>
+                            </div>
+                            
+                            <!-- Dynamic Row Container -->
+                            <div class="form-items-container" id="formItemsContainer">
+                                <!-- JS appends rows here -->
+                            </div>
+                        </div>
+
+                        <!-- Grand Total (Calculated) -->
+                        <div class="form-group form-group-full" style="background: rgba(0,0,0,0.15); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 700; font-size: 0.9rem;">拿貨總金額 (NT$)</span>
+                                <span id="orderGrandTotalDisplay" style="font-size: 1.35rem; font-weight: 800; color: var(--accent-orange); font-family: 'Outfit';">NT$ 0</span>
+                            </div>
+                        </div>
+
+                        <!-- Photo Attachment Section -->
+                        <div class="form-group form-group-full" style="border-top: 1px dashed var(--border-color); padding-top: 0.85rem;">
+                            <label>收據照片 / 匯款截圖</label>
+                            <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.25rem;">
+                                <button type="button" class="btn btn-secondary" style="padding: 0.5rem 0.85rem; font-size: 0.8rem;" onclick="triggerPhotoUpload()">
+                                    📸 上傳相片/拍照
+                                </button>
+                                <button type="button" id="removePhotoBtn" class="btn btn-danger" style="padding: 0.5rem 0.85rem; font-size: 0.8rem; display: none;" onclick="removeUploadedPhoto()">
+                                    移除
+                                </button>
+                                <input type="file" id="orderPhotoFile" accept="image/*" style="display: none;" onchange="handleOrderPhotoUpload(event)">
+                            </div>
+                            <div style="position: relative; margin-top: 0.5rem;">
+                                <img id="orderPhotoPreview" style="display: none; max-width: 120px; border-radius: 8px; border: 1px solid var(--border-color); object-fit: cover;" alt="Preview">
+                            </div>
+                        </div>
+
+                        <!-- Payment Status Checkbox -->
+                        <div class="form-group form-group-full" style="background: rgba(var(--color-success-rgb), 0.05); padding: 0.75rem; border-radius: 8px; border: 1px dashed rgba(var(--color-success-rgb), 0.2); margin-top: 0.25rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; flex-direction: column; gap: 0.15rem;">
+                                    <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">已付款結清</span>
+                                    <span id="orderPaymentTimeDisplay" class="payment-time-label">尚未付款</span>
+                                </div>
+                                <label class="payment-toggle">
+                                    <input type="checkbox" id="orderPaymentStatusCheckbox" onchange="handleModalPaymentToggle(this)">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Delivery Status -->
+                        <div class="form-group">
+                            <label for="orderDeliveryStatus">出貨狀態</label>
+                            <select id="orderDeliveryStatus">
+                                <option value="pending">待出貨 (預定)</option>
+                                <option value="shipped">已出貨 (完成)</option>
+                            </select>
+                        </div>
+
+                        <!-- Remarks -->
+                        <div class="form-group form-group-full">
+                            <label for="orderRemarks">備註說明</label>
+                            <textarea id="orderRemarks" placeholder="記錄收件備忘、口味特定調配..."></textarea>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" style="display: none;" id="hiddenOrderSubmitBtn"></button>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeOrderModal()">取消</button>
+                <button class="btn btn-primary" onclick="document.getElementById('hiddenOrderSubmitBtn').click()">儲存拿貨單</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         Receipt Photo Lightbox Viewer
+         ========================================================================== -->
+    <div class="lightbox-overlay" id="lightboxViewer" onclick="closeLightbox()">
+        <button class="lightbox-close" onclick="closeLightbox()">×</button>
+        <img class="lightbox-img" id="lightboxImg" src="" alt="Full view">
+        <div class="lightbox-caption" id="lightboxCaption"></div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ==========================================================================
+         JavaScript Code Logic
+         ========================================================================== -->
+    <script>
+        // ==========================================================================
+        // 1. Storage & State Keys
+        // ==========================================================================
+        const DB_KEY_VENDORS = 'qilixiang_db_vendors';
+        const DB_KEY_PRODUCTS = 'qilixiang_db_products';
+        const DB_KEY_ORDERS = 'qilixiang_db_orders';
+        const CONFIG_THEME_KEY = 'qilixiang_theme';
+        const CONFIG_FONT_KEY = 'qilixiang_font_scale';
+
+        // Local state
+        let vendors = [];
+        let products = [];
+        let orders = [];
+        let salesChartInstance = null;
+        let vendorChartInstance = null;
+        
+        // Modal State
+        let currentUploadedPhoto = '';
+
+        // Default Seed Data
+        const DEFAULT_PRODUCTS = [
+            { id: 'p-1', name: '生鮮七里香 (大) - A級', unit: '包', defaultPrice: 120 },
+            { id: 'p-2', name: '生鮮七里香 (中) - B級', unit: '包', defaultPrice: 100 },
+            { id: 'p-3', name: '秘製調味七里香 (串)', unit: '串', defaultPrice: 125 },
+            { id: 'p-4', name: '香脆熟食七里香 (箱)', unit: '箱', defaultPrice: 140 },
+            { id: 'p-5', name: '椒鹽炭烤七里香 (包)', unit: '包', defaultPrice: 130 }
+        ];
+
+        const DEFAULT_VENDORS = [
+            { id: 'v-1', name: '三和夜市炭烤王', phone: '0912-345-678', address: '新北市三重區中央北路', remarks: '每週二四拿貨，貨到付現' },
+            { id: 'v-2', name: '師大香酥七里香', phone: '0923-456-789', address: '台北市大安區師大路', remarks: '月結轉帳，固定包裝規格' },
+            { id: 'v-3', name: '板橋南雅烤肉攤', phone: '0934-567-890', address: '新北市板橋區南雅東路', remarks: '大批進貨，價格可談' },
+            { id: 'v-4', name: '基隆廟口碳烤亭', phone: '0945-678-901', address: '基隆市仁愛區愛四路', remarks: '需冷凍物流宅配' },
+            { id: 'v-5', name: '通化街串燒達人', phone: '0956-789-012', address: '台北市大安區臨江街', remarks: '日結現金，下午自取' }
+        ];
+
+        // Seed Orders using MULTI-ITEM schema
+        const DEFAULT_ORDERS = [
+            { id: 'o-1', vendorId: 'v-1', date: '2026-05-10', items: [{ productId: 'p-1', productName: '生鮮七里香 (大) - A級', price: 120, quantity: 50, total: 6000 }], total: 6000, paymentStatus: 'paid', paidAt: '2026-05-10 11:24:00', deliveryStatus: 'shipped', remarks: '首批交易，測試產品尺寸', photo: '' },
+            { id: 'o-2', vendorId: 'v-2', date: '2026-05-22', items: [{ productId: 'p-3', productName: '秘製調味七里香 (串)', price: 125, quantity: 100, total: 12500 }], total: 12500, paymentStatus: 'paid', paidAt: '2026-05-22 17:40:02', deliveryStatus: 'shipped', remarks: '配合商圈活動增貨', photo: '' },
+            { id: 'o-3', vendorId: 'v-3', date: '2026-06-01', items: [{ productId: 'p-2', productName: '生鮮七里香 (中) - B級', price: 100, quantity: 80, total: 8000 }], total: 8000, paymentStatus: 'paid', paidAt: '2026-06-01 10:15:30', deliveryStatus: 'shipped', remarks: '南雅攤位補貨', photo: '' },
+            { id: 'o-4', vendorId: 'v-4', date: '2026-06-03', items: [{ productId: 'p-4', productName: '香脆熟食七里香 (箱)', price: 140, quantity: 30, total: 4200 }], total: 4200, paymentStatus: 'paid', paidAt: '2026-06-04 09:30:11', deliveryStatus: 'shipped', remarks: '常溫宅配交付', photo: '' },
+            { id: 'o-5', vendorId: 'v-1', date: '2026-06-08', items: [{ productId: 'p-1', productName: '生鮮七里香 (大) - A級', price: 120, quantity: 60, total: 7200 }], total: 7200, paymentStatus: 'paid', paidAt: '2026-06-08 14:05:00', deliveryStatus: 'shipped', remarks: '固定拿貨', photo: '' },
+            { id: 'o-6', vendorId: 'v-5', date: '2026-06-09', items: [{ productId: 'p-3', productName: '秘製調味七里香 (串)', price: 125, quantity: 150, total: 18750 }], total: 18750, paymentStatus: 'paid', paidAt: '2026-06-09 19:30:00', deliveryStatus: 'shipped', remarks: '現場自取，款項已收', photo: '' },
+            { id: 'o-7', vendorId: 'v-2', date: '2026-06-11', items: [{ productId: 'p-3', productName: '秘製調味七里香 (串)', price: 125, quantity: 120, total: 15000 }], total: 15000, paymentStatus: 'unpaid', paidAt: '', deliveryStatus: 'shipped', remarks: '款項約定下週三匯款', photo: '' },
+            { id: 'o-8', vendorId: 'v-3', date: '2026-06-12', items: [{ productId: 'p-2', productName: '生鮮七里香 (中) - B級', price: 100, quantity: 100, total: 10000 }], total: 10000, paymentStatus: 'paid', paidAt: '2026-06-12 11:55:00', deliveryStatus: 'shipped', remarks: '加急補貨', photo: '' },
+            // Multi-item Order 9
+            { id: 'o-9', vendorId: 'v-4', date: '2026-06-13', items: [
+                { productId: 'p-4', productName: '香脆熟食七里香 (箱)', price: 140, quantity: 20, total: 2800 },
+                { productId: 'p-5', productName: '椒鹽炭烤七里香 (包)', price: 130, quantity: 30, total: 3900 }
+            ], total: 6700, paymentStatus: 'unpaid', paidAt: '', deliveryStatus: 'pending', remarks: '預定週一上午寄達', photo: '' },
+            { id: 'o-10', vendorId: 'v-1', date: '2026-06-13', items: [{ productId: 'p-1', productName: '生鮮七里香 (大) - A級', price: 120, quantity: 80, total: 9600 }], total: 9600, paymentStatus: 'paid', paidAt: '2026-06-13 09:30:00', deliveryStatus: 'shipped', remarks: '今天上午送達三和', photo: '' },
+            { id: 'o-11', vendorId: 'v-5', date: '2026-06-13', items: [{ productId: 'p-1', productName: '生鮮七里香 (大) - A級', price: 120, quantity: 100, total: 12000 }], total: 12000, paymentStatus: 'unpaid', paidAt: '', deliveryStatus: 'pending', remarks: '已電話確認，預計傍晚來店自取', photo: '' },
+            // Multi-item Order 12
+            { id: 'o-12', vendorId: 'v-3', date: '2026-06-13', items: [
+                { productId: 'p-3', productName: '秘製調味七里香 (串)', price: 125, quantity: 40, total: 5000 },
+                { productId: 'p-2', productName: '生鮮七里香 (中) - B級', price: 100, quantity: 25, total: 2500 }
+            ], total: 7500, paymentStatus: 'paid', paidAt: '2026-06-13 13:00:00', deliveryStatus: 'pending', remarks: '已先轉帳，待傍晚物流出貨', photo: '' }
+        ];
+
+        // ==========================================================================
+        // 2. Initialization & Boot
+        // ==========================================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initFontSize();
+            loadDatabase();
+            startClock();
+            renderAll();
+        });
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem(CONFIG_THEME_KEY) || 'dark';
+            document.body.setAttribute('data-theme', savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem(CONFIG_THEME_KEY, newTheme);
+            setTimeout(updateCharts, 50);
+            showToast('外觀切換成功', `已套用${newTheme === 'dark' ? '深色' : '淺色'}主題`, 'success');
+        }
+
+        function initFontSize() {
+            const savedScale = localStorage.getItem(CONFIG_FONT_KEY) || '16px';
+            changeFontSize(savedScale, false);
+        }
+
+        function changeFontSize(scaleStr, toastUser = true) {
+            document.documentElement.style.setProperty('--font-base-size', scaleStr);
+            localStorage.setItem(CONFIG_FONT_KEY, scaleStr);
+            document.querySelectorAll('.font-btn').forEach(btn => {
+                if (btn.getAttribute('data-scale') === scaleStr) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+            if (toastUser) {
+                showToast('字體大小已變更', `目前基準大小設定為 ${scaleStr}`, 'success');
+            }
+        }
+
+        function startClock() {
+            const updateClock = () => {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const date = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                
+                const clockEl = document.getElementById('clockText');
+                if (clockEl) {
+                    clockEl.innerText = `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+                }
+            };
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+
+        // ==========================================================================
+        // 3. Tab Navigation (Supports bottom navigation)
+        // ==========================================================================
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.mobile-nav-item').forEach(btn => btn.classList.remove('active'));
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                content.style.display = 'none';
+            });
+            
+            const desktopTabBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            if (desktopTabBtn) desktopTabBtn.classList.add('active');
+
+            const mobileTabBtn = document.querySelector(`.mobile-nav-item[data-tab="${tabId}"]`);
+            if (mobileTabBtn) mobileTabBtn.classList.add('active');
+            
+            const targetContent = document.getElementById(`tab-${tabId}`);
+            if (targetContent) {
+                targetContent.style.display = 'block';
+                targetContent.offsetHeight;
+                targetContent.classList.add('active');
+            }
+            
+            if (tabId === 'dashboard') {
+                setTimeout(updateCharts, 50);
+            } else if (tabId === 'settings') {
+                renderSettingsLists();
+            }
+            window.scrollTo(0, 0);
+        }
+
+        // ==========================================================================
+        // 4. Data Loading
+        // ==========================================================================
+        function loadDatabase() {
+            const localVendors = localStorage.getItem(DB_KEY_VENDORS);
+            const localProducts = localStorage.getItem(DB_KEY_PRODUCTS);
+            const localOrders = localStorage.getItem(DB_KEY_ORDERS);
+
+            if (localVendors) vendors = JSON.parse(localVendors);
+            else { vendors = [...DEFAULT_VENDORS]; saveVendorsToDB(); }
+
+            if (localProducts) products = JSON.parse(localProducts);
+            else { products = [...DEFAULT_PRODUCTS]; saveProductsToDB(); }
+
+            if (localOrders) {
+                orders = JSON.parse(localOrders);
+                // Schema Migration: Upgrade single-item orders to multi-item arrays
+                let migrated = false;
+                orders.forEach(o => {
+                    if (!o.items || !Array.isArray(o.items)) {
+                        o.items = [{
+                            productId: products.find(p => p.name === o.product)?.id || 'p-unknown',
+                            productName: o.product,
+                            price: o.price,
+                            quantity: o.quantity,
+                            total: o.total
+                        }];
+                        delete o.product;
+                        delete o.price;
+                        delete o.quantity;
+                        migrated = true;
+                    }
+                });
+                if (migrated) saveOrdersToDB();
+            } else {
+                orders = [...DEFAULT_ORDERS];
+                saveOrdersToDB();
+            }
+        }
+
+        function saveVendorsToDB() { localStorage.setItem(DB_KEY_VENDORS, JSON.stringify(vendors)); }
+        function saveProductsToDB() { localStorage.setItem(DB_KEY_PRODUCTS, JSON.stringify(products)); }
+        function saveOrdersToDB() { localStorage.setItem(DB_KEY_ORDERS, JSON.stringify(orders)); }
+
+        function initFilterDropdowns() {
+            const dbVendor = document.getElementById('dbFilterVendor');
+            const dbProduct = document.getElementById('dbFilterProduct');
+            const orderVendor = document.getElementById('orderFilterVendor');
+            const orderProduct = document.getElementById('orderFilterProduct');
+            const formVendor = document.getElementById('orderVendor');
+
+            dbVendor.innerHTML = '<option value="">所有廠商</option>';
+            dbProduct.innerHTML = '<option value="">所有產品</option>';
+            orderVendor.innerHTML = '<option value="">所有廠商</option>';
+            orderProduct.innerHTML = '<option value="">所有產品</option>';
+            formVendor.innerHTML = '<option value="">-- 請選擇下游客戶 --</option>';
+
+            const sortedVendors = [...vendors].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-TW'));
+            const sortedProducts = [...products].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-TW'));
+
+            sortedVendors.forEach(v => {
+                dbVendor.add(new Option(v.name, v.id));
+                orderVendor.add(new Option(v.name, v.id));
+                formVendor.add(new Option(v.name, v.id));
+            });
+
+            sortedProducts.forEach(p => {
+                dbProduct.add(new Option(p.name, p.name));
+                orderProduct.add(new Option(p.name, p.name));
+            });
+        }
+
+        // Helpers to sum items quantities/totals
+        function getOrderTotalQty(order) {
+            return order.items.reduce((sum, item) => sum + Number(item.quantity), 0);
+        }
+
+        // ==========================================================================
+        // 5. Core Rendering & Mobile Layout switch
+        // ==========================================================================
+        function renderAll() {
+            initFilterDropdowns();
+
+            const filteredDb = getFilteredDashboardData();
+            renderStats(filteredDb);
+            updateCharts(filteredDb);
+
+            const filteredOrders = getFilteredOrderData();
+            renderOrdersTable(filteredOrders);
+            renderOrdersMobileCards(filteredOrders);
+        }
+
+        // --- DASHBOARD FILTERING ---
+        function getFilteredDashboardData() {
+            const vendorId = document.getElementById('dbFilterVendor').value;
+            const product = document.getElementById('dbFilterProduct').value;
+            const payment = document.getElementById('dbFilterPayment').value;
+            const dateFilter = document.getElementById('dbFilterDate').value;
+
+            return orders.filter(order => {
+                const vendorMatch = !vendorId || order.vendorId === vendorId;
+                
+                // Matches if any item in the order matches the product category
+                const productMatch = !product || order.items.some(item => item.productName === product);
+                const paymentMatch = !payment || order.paymentStatus === payment;
+
+                let dateMatch = true;
+                const orderDate = new Date(order.date);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+
+                if (dateFilter === 'today') {
+                    dateMatch = order.date === getLocalDateString(new Date());
+                } else if (dateFilter === 'yesterday') {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    dateMatch = order.date === getLocalDateString(yesterday);
+                } else if (dateFilter === 'this-week') {
+                    const dayOfWeek = today.getDay() || 7;
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - dayOfWeek + 1);
+                    const endOfWeek = new Date(today);
+                    endOfWeek.setDate(today.getDate() + (7 - dayOfWeek));
+                    dateMatch = orderDate >= startOfWeek && orderDate <= endOfWeek;
+                } else if (dateFilter === 'this-month') {
+                    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+                    dateMatch = orderDate >= startOfMonth && orderDate <= endOfMonth;
+                } else if (dateFilter === 'custom') {
+                    const startVal = document.getElementById('dbCustomStartDate').value;
+                    const endVal = document.getElementById('dbCustomEndDate').value;
+                    if (startVal) {
+                        const startDate = new Date(startVal);
+                        startDate.setHours(0,0,0,0);
+                        dateMatch = dateMatch && orderDate >= startDate;
+                    }
+                    if (endVal) {
+                        const endDate = new Date(endVal);
+                        endDate.setHours(23,59,59,999);
+                        dateMatch = dateMatch && orderDate <= endDate;
+                    }
+                }
+
+                return vendorMatch && productMatch && paymentMatch && dateMatch;
+            });
+        }
+
+        function handleDbFilterChange() {
+            const filtered = getFilteredDashboardData();
+            renderStats(filtered);
+            updateCharts(filtered);
+        }
+
+        function handleDbDateFilterChange() {
+            const opt = document.getElementById('dbFilterDate').value;
+            const popover = document.getElementById('dbDateRangePopover');
+            if (opt === 'custom') popover.classList.add('active');
+            else { popover.classList.remove('active'); handleDbFilterChange(); }
+        }
+
+        function closeDbDateRangePopover() {
+            document.getElementById('dbDateRangePopover').classList.remove('active');
+            handleDbFilterChange();
+        }
+
+        function resetDbFilters() {
+            document.getElementById('dbFilterVendor').value = '';
+            document.getElementById('dbFilterProduct').value = '';
+            document.getElementById('dbFilterPayment').value = '';
+            document.getElementById('dbFilterDate').value = 'all';
+            document.getElementById('dbCustomStartDate').value = '';
+            document.getElementById('dbCustomEndDate').value = '';
+            document.getElementById('dbDateRangePopover').classList.remove('active');
+            handleDbFilterChange();
+            showToast('已重設儀表板快篩', '顯示所有訂單統計', 'success');
+        }
+
+        function renderStats(filteredDb) {
+            const totalSales = filteredDb.reduce((sum, o) => sum + Number(o.total || 0), 0);
+            document.getElementById('statTotalSales').innerText = `NT$ ${totalSales.toLocaleString()}`;
+
+            const totalQty = filteredDb.reduce((sum, o) => sum + getOrderTotalQty(o), 0);
+            document.getElementById('statTotalQty').innerText = totalQty.toLocaleString();
+
+            const unpaidAmount = filteredDb
+                .filter(o => o.paymentStatus === 'unpaid')
+                .reduce((sum, o) => sum + Number(o.total || 0), 0);
+            document.getElementById('statUnpaidAmount').innerText = `NT$ ${unpaidAmount.toLocaleString()}`;
+
+            document.getElementById('statVendorCount').innerText = `${vendors.length} 家`;
+        }
+
+        // --- ORDER HISTORY FILTERING ---
+        function getFilteredOrderData() {
+            const query = document.getElementById('orderSearchInput').value.trim().toLowerCase();
+            const vendorId = document.getElementById('orderFilterVendor').value;
+            const product = document.getElementById('orderFilterProduct').value;
+            const payment = document.getElementById('orderFilterPayment').value;
+            const delivery = document.getElementById('orderFilterDelivery').value;
+            const dateFilter = document.getElementById('orderFilterDate').value;
+
+            return orders.filter(order => {
+                const vendorObj = vendors.find(v => v.id === order.vendorId);
+                const vendorName = vendorObj ? vendorObj.name.toLowerCase() : '';
+                
+                // Matches search if vendor name, remarks, or any item name contains query
+                const searchMatch = !query || 
+                                    vendorName.includes(query) || 
+                                    order.items.some(item => item.productName.toLowerCase().includes(query)) || 
+                                    (order.remarks && order.remarks.toLowerCase().includes(query));
+
+                const vendorMatch = !vendorId || order.vendorId === vendorId;
+                const productMatch = !product || order.items.some(item => item.productName === product);
+                const paymentMatch = !payment || order.paymentStatus === payment;
+                const deliveryMatch = !delivery || order.deliveryStatus === delivery;
+
+                let dateMatch = true;
+                const orderDate = new Date(order.date);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+
+                if (dateFilter === 'today') {
+                    dateMatch = order.date === getLocalDateString(new Date());
+                } else if (dateFilter === 'yesterday') {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    dateMatch = order.date === getLocalDateString(yesterday);
+                } else if (dateFilter === 'this-week') {
+                    const dayOfWeek = today.getDay() || 7;
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - dayOfWeek + 1);
+                    const endOfWeek = new Date(today);
+                    endOfWeek.setDate(today.getDate() + (7 - dayOfWeek));
+                    dateMatch = orderDate >= startOfWeek && orderDate <= endOfWeek;
+                } else if (dateFilter === 'this-month') {
+                    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59);
+                    dateMatch = orderDate >= startOfMonth && orderDate <= endOfMonth;
+                } else if (dateFilter === 'custom') {
+                    const startVal = document.getElementById('orderCustomStartDate').value;
+                    const endVal = document.getElementById('orderCustomEndDate').value;
+                    if (startVal) {
+                        const startDate = new Date(startVal);
+                        startDate.setHours(0,0,0,0);
+                        dateMatch = dateMatch && orderDate >= startDate;
+                    }
+                    if (endVal) {
+                        const endDate = new Date(endVal);
+                        endDate.setHours(23,59,59,999);
+                        dateMatch = dateMatch && orderDate <= endDate;
+                    }
+                }
+
+                return searchMatch && vendorMatch && productMatch && paymentMatch && deliveryMatch && dateMatch;
+            });
+        }
+
+        function handleOrderFilterChange() {
+            const filtered = getFilteredOrderData();
+            renderOrdersTable(filtered);
+            renderOrdersMobileCards(filtered);
+        }
+
+        function handleOrderDateFilterChange() {
+            const opt = document.getElementById('orderFilterDate').value;
+            const popover = document.getElementById('orderDateRangePopover');
+            if (opt === 'custom') popover.classList.add('active');
+            else { popover.classList.remove('active'); handleOrderFilterChange(); }
+        }
+
+        function closeOrderDateRangePopover() {
+            document.getElementById('orderDateRangePopover').classList.remove('active');
+            handleOrderFilterChange();
+        }
+
+        function resetOrderFilters() {
+            document.getElementById('orderSearchInput').value = '';
+            document.getElementById('orderFilterVendor').value = '';
+            document.getElementById('orderFilterProduct').value = '';
+            document.getElementById('orderFilterPayment').value = '';
+            document.getElementById('orderFilterDelivery').value = '';
+            document.getElementById('orderFilterDate').value = 'all';
+            document.getElementById('orderCustomStartDate').value = '';
+            document.getElementById('orderCustomEndDate').value = '';
+            document.getElementById('orderDateRangePopover').classList.remove('active');
+            handleOrderFilterChange();
+            showToast('已重設篩選條件', '已顯示全部拿貨紀錄', 'success');
+        }
+
+        // --- DESKTOP TABLE RENDER ---
+        function renderOrdersTable(filteredList) {
+            const tbody = document.getElementById('ordersTableBody');
+            const emptyState = document.getElementById('tableEmptyState');
+            const countBadge = document.getElementById('ordersCountBadge');
+
+            tbody.innerHTML = '';
+            countBadge.innerText = `${filteredList.length} 筆`;
+
+            if (filteredList.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            const sorted = [...filteredList].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sorted.forEach(order => {
+                const tr = document.createElement('tr');
+                const vendorObj = vendors.find(v => v.id === order.vendorId);
+                const vendorName = vendorObj ? vendorObj.name : '<span style="color:var(--color-danger); opacity:0.6;">(客戶已刪除)</span>';
+                
+                // Photo cell thumbnail
+                const photoCellHtml = order.photo 
+                    ? `<img src="${order.photo}" class="m-card-photo-thumb" style="width:30px; height:30px;" onclick="viewFullPhoto('${order.photo}', '${vendorObj ? vendorObj.name : ''} - 收據照片')" alt="Receipt">`
+                    : '<span style="color:var(--text-muted); opacity: 0.5;">無</span>';
+
+                // Checkbox Payment cell (Auto saves payment time)
+                const paymentChecked = order.paymentStatus === 'paid' ? 'checked' : '';
+                const paymentTimeLabel = order.paidAt ? `<span class="payment-time-label" style="display:block;">⏱️ ${order.paidAt.substring(5, 16)}</span>` : '';
+                const paymentCellHtml = `
+                    <div style="display:flex; flex-direction:column; align-items:center;">
+                        <label class="payment-toggle">
+                            <input type="checkbox" ${paymentChecked} onchange="toggleOrderPaymentStatus('${order.id}', this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        ${paymentTimeLabel}
+                    </div>
+                `;
+                
+                const deliveryHtml = order.deliveryStatus === 'shipped'
+                    ? '<span class="badge badge-info"><span class="badge-dot"></span>已出貨</span>'
+                    : '<span class="badge badge-warning"><span class="badge-dot"></span>待出貨</span>';
+
+                // MULTI-ITEM COLUMN BUILDER (Renders multiple rows cleanly in cells)
+                let itemsListHtml = '<div style="display:flex; flex-direction:column; gap:0.25rem;">';
+                let priceListHtml = '<div style="display:flex; flex-direction:column; gap:0.25rem; text-align:right; color:var(--text-secondary);">';
+                let qtyListHtml = '<div style="display:flex; flex-direction:column; gap:0.25rem; text-align:right; font-weight:600;">';
+                
+                order.items.forEach(item => {
+                    itemsListHtml += `<span style="font-weight:600;">${item.productName}</span>`;
+                    priceListHtml += `<span style="font-family:\'Outfit\'">NT$ ${item.price.toLocaleString()}</span>`;
+                    qtyListHtml += `<span style="font-family:\'Outfit\'">${item.quantity.toLocaleString()}</span>`;
+                });
+                
+                itemsListHtml += '</div>';
+                priceListHtml += '</div>';
+                qtyListHtml += '</div>';
+
+                tr.innerHTML = `
+                    <td style="font-weight: 500;">${order.date}</td>
+                    <td style="font-weight: 600;">${vendorName}</td>
+                    <td>${itemsListHtml}</td>
+                    <td style="text-align: right;">${priceListHtml}</td>
+                    <td style="text-align: right;">${qtyListHtml}</td>
+                    <td style="text-align: right; font-family: 'Outfit'; font-weight: bold; color: var(--accent-orange); font-size: 1rem;">NT$ ${Number(order.total).toLocaleString()}</td>
+                    <td style="text-align: center;">${photoCellHtml}</td>
+                    <td style="text-align: center;">${paymentCellHtml}</td>
+                    <td style="text-align: center;">${deliveryHtml}</td>
+                    <td style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${order.remarks || ''}">
+                        ${order.remarks || '<span style="color:var(--text-muted); opacity: 0.5;">-</span>'}
+                    </td>
+                    <td style="text-align: center;">
+                        <div class="actions-cell">
+                            <button class="btn-table-icon" onclick="editOrder('${order.id}')" title="編輯">✏️</button>
+                            <button class="btn-table-icon btn-table-delete" onclick="deleteOrder('${order.id}')" title="刪除">🗑️</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- MOBILE CARDS RENDER ---
+        function renderOrdersMobileCards(filteredList) {
+            const container = document.getElementById('ordersMobileCardsList');
+            container.innerHTML = '';
+
+            if (filteredList.length === 0) return;
+
+            const sorted = [...filteredList].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sorted.forEach(order => {
+                const vendorObj = vendors.find(v => v.id === order.vendorId);
+                const vendorName = vendorObj ? vendorObj.name : '(客戶已刪除)';
+                
+                // Photo preview
+                const photoHtml = order.photo 
+                    ? `<img src="${order.photo}" class="m-card-photo-thumb" onclick="viewFullPhoto('${order.photo}', '${vendorName} - 收據照片')" alt="Receipt">`
+                    : '';
+
+                // Payment toggle
+                const paymentChecked = order.paymentStatus === 'paid' ? 'checked' : '';
+                const paymentTimeLabel = order.paidAt ? `<span class="payment-time-label">已付：${order.paidAt.substring(5, 16)}</span>` : '<span class="payment-time-label">未付款</span>';
+
+                // Delivery badge
+                const deliveryBadge = order.deliveryStatus === 'shipped'
+                    ? '<span class="badge badge-info"><span class="badge-dot"></span>已出貨</span>'
+                    : '<span class="badge badge-warning"><span class="badge-dot"></span>待出貨</span>';
+
+                // Multi-item text summary
+                let itemsListHtml = '<div class="m-card-items-list">';
+                order.items.forEach(item => {
+                    itemsListHtml += `<div>🍢 ${item.productName} × ${item.quantity.toLocaleString()} (NT$ ${item.price})</div>`;
+                });
+                itemsListHtml += '</div>';
+
+                const card = document.createElement('div');
+                card.className = 'mobile-order-card';
+                card.innerHTML = `
+                    <div class="m-card-header">
+                        <span class="m-card-date">📅 ${order.date}</span>
+                        ${deliveryBadge}
+                    </div>
+                    <div class="m-card-body">
+                        <div class="m-card-info">
+                            <span class="m-card-vendor">${vendorName}</span>
+                            ${itemsListHtml}
+                            <span class="m-card-total">NT$ ${order.total.toLocaleString()}</span>
+                        </div>
+                        <div class="m-card-right">
+                            ${photoHtml}
+                        </div>
+                    </div>
+                    ${order.remarks ? `<div style="font-size:0.8rem; background:rgba(0,0,0,0.1); padding:0.4rem; border-radius:4px; color:var(--text-secondary); border:1px solid var(--border-color); overflow:hidden; text-overflow:ellipsis;">📝 ${order.remarks}</div>` : ''}
+                    <div class="m-card-footer">
+                        <div class="m-payment-checkbox-wrapper">
+                            <label class="payment-toggle">
+                                <input type="checkbox" ${paymentChecked} onchange="toggleOrderPaymentStatus('${order.id}', this)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <div style="display:flex; flex-direction:column;">
+                                <span style="font-size:0.8rem; font-weight:600;">已結清</span>
+                                ${paymentTimeLabel}
+                            </div>
+                        </div>
+                        <div class="m-card-actions">
+                            <button class="btn btn-secondary" style="padding:0.4rem 0.65rem; font-size:0.75rem;" onclick="editOrder('${order.id}')">✏️ 編輯</button>
+                            <button class="btn btn-danger" style="padding:0.4rem 0.65rem; font-size:0.75rem; border:none;" onclick="deleteOrder('${order.id}')">🗑️</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Quick Payment Toggle
+        function toggleOrderPaymentStatus(orderId, checkbox) {
+            const index = orders.findIndex(o => o.id === orderId);
+            if (index !== -1) {
+                const nowStr = getLocalDateString(new Date()) + ' ' + new Date().toTimeString().split(' ')[0];
+                const order = orders[index];
+                
+                if (checkbox.checked) {
+                    order.paymentStatus = 'paid';
+                    order.paidAt = nowStr;
+                    showToast('款項已結清', `已自動登錄付款時間：${nowStr}`, 'success');
+                } else {
+                    order.paymentStatus = 'unpaid';
+                    order.paidAt = '';
+                    showToast('款項已取消結清', `已回復為掛帳狀態`, 'warning');
+                }
+                
+                saveOrdersToDB();
+                renderAll();
+            }
+        }
+
+        // ==========================================================================
+        // 6. Chart.js Dynamic Configurations
+        // ==========================================================================
+        function updateCharts(filteredData) {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const gridColor = currentTheme === 'light' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)';
+            const labelColor = currentTheme === 'light' ? '#4b5563' : '#9ca3af';
+
+            const dateMap = {};
+            filteredData.forEach(order => {
+                const monthKey = order.date.substring(0, 7);
+                if (!dateMap[monthKey]) {
+                    dateMap[monthKey] = { revenue: 0, qty: 0 };
+                }
+                dateMap[monthKey].revenue += Number(order.total);
+                dateMap[monthKey].qty += getOrderTotalQty(order);
+            });
+
+            const dateLabels = Object.keys(dateMap).sort();
+            const revenueDataset = dateLabels.map(k => dateMap[k].revenue);
+            const qtyDataset = dateLabels.map(k => dateMap[k].qty);
+
+            if (salesChartInstance) salesChartInstance.destroy();
+            const ctxTrend = document.getElementById('salesTrendChart').getContext('2d');
+            
+            salesChartInstance = new Chart(ctxTrend, {
+                type: 'bar',
+                data: {
+                    labels: dateLabels.map(d => {
+                        const parts = d.split('-');
+                        return parts.length > 1 ? `${parts[0]}年${parts[1]}月` : d;
+                    }),
+                    datasets: [
+                        {
+                            label: '進貨金額 (NT$)',
+                            data: revenueDataset,
+                            backgroundColor: 'rgba(255, 107, 59, 0.75)',
+                            borderColor: 'rgba(255, 107, 59, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'yRevenue',
+                            borderRadius: 6,
+                            order: 2
+                        },
+                        {
+                            label: '拿貨量 (件)',
+                            data: qtyDataset,
+                            type: 'line',
+                            fill: false,
+                            borderColor: '#ffb300',
+                            backgroundColor: '#ffb300',
+                            tension: 0.2,
+                            borderWidth: 3,
+                            yAxisID: 'yQty',
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: labelColor, font: { family: 'Noto Sans TC', size: 10 } } }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: { color: labelColor, font: { family: 'Noto Sans TC' } }
+                        },
+                        yRevenue: {
+                            type: 'linear',
+                            position: 'left',
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: labelColor,
+                                callback: function(value) { return 'NT$ ' + value.toLocaleString(); },
+                                font: { family: 'Outfit', size: 9 }
+                            }
+                        },
+                        yQty: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: {
+                                color: labelColor,
+                                font: { family: 'Outfit', size: 9 }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Pie chart (Vendor share)
+            const vendorShare = {};
+            filteredData.forEach(order => {
+                const v = vendors.find(item => item.id === order.vendorId);
+                const name = v ? v.name : '未知客戶';
+                vendorShare[name] = (vendorShare[name] || 0) + Number(order.total);
+            });
+
+            const vendorLabels = Object.keys(vendorShare);
+            const vendorAmounts = vendorLabels.map(name => vendorShare[name]);
+
+            if (vendorChartInstance) vendorChartInstance.destroy();
+            const ctxPie = document.getElementById('vendorPieChart').getContext('2d');
+            
+            const colors = [
+                '#ff6b3b', '#ffb300', '#10b981', '#3b82f6', '#8b5cf6', 
+                '#ec4899', '#f97316', '#14b8a6', '#6366f1', '#64748b'
+            ];
+
+            vendorChartInstance = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: vendorLabels,
+                    datasets: [{
+                        data: vendorAmounts,
+                        backgroundColor: colors.slice(0, Math.max(vendorLabels.length, 1)),
+                        borderWidth: currentTheme === 'light' ? 2 : 0,
+                        borderColor: currentTheme === 'light' ? '#fff' : 'transparent',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: labelColor,
+                                font: { family: 'Noto Sans TC', size: 9 },
+                                boxWidth: 10
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+
+        // ==========================================================================
+        // 7. Order CRUD Modals (Supports Dynamic Multi-Items)
+        // ==========================================================================
+        function openOrderModal(orderId = '') {
+            const modal = document.getElementById('orderModal');
+            const title = document.getElementById('orderModalTitle');
+            const form = document.getElementById('orderForm');
+
+            // Populate vendor choice dropdown
+            initFilterDropdowns();
+
+            // Clear photo state
+            currentUploadedPhoto = '';
+            document.getElementById('orderPhotoPreview').style.display = 'none';
+            document.getElementById('orderPhotoPreview').src = '';
+            document.getElementById('removePhotoBtn').style.display = 'none';
+            
+            // Clear items container
+            const container = document.getElementById('formItemsContainer');
+            container.innerHTML = '';
+
+            if (orderId) {
+                title.innerText = '編輯拿貨單明細';
+                const order = orders.find(o => o.id === orderId);
+                if (!order) return;
+
+                document.getElementById('orderId').value = order.id;
+                document.getElementById('orderVendor').value = order.vendorId;
+                document.getElementById('orderDate').value = order.date;
+                document.getElementById('orderDeliveryStatus').value = order.deliveryStatus;
+                document.getElementById('orderRemarks').value = order.remarks || '';
+
+                // Handle payment status checkbox & time in modal
+                const checkbox = document.getElementById('orderPaymentStatusCheckbox');
+                checkbox.checked = (order.paymentStatus === 'paid');
+                updateModalPaymentLabel(order.paymentStatus === 'paid', order.paidAt);
+
+                // Handle photo preview
+                if (order.photo) {
+                    currentUploadedPhoto = order.photo;
+                    const preview = document.getElementById('orderPhotoPreview');
+                    preview.src = order.photo;
+                    preview.style.display = 'block';
+                    document.getElementById('removePhotoBtn').style.display = 'inline-flex';
+                }
+
+                // Populate Form Multi-item Rows
+                order.items.forEach(item => {
+                    addFormItemRow(item.productId, item.price, item.quantity);
+                });
+            } else {
+                title.innerText = '登錄下游拿貨單';
+                form.reset();
+                document.getElementById('orderId').value = '';
+                document.getElementById('orderDate').value = getLocalDateString(new Date());
+                document.getElementById('orderPaymentStatusCheckbox').checked = false;
+                updateModalPaymentLabel(false, '');
+
+                // Start with one default empty row
+                addFormItemRow();
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderModal').classList.remove('active');
+        }
+
+        // --- DYNAMIC MULTI-ITEM ROW MANAGEMENT ---
+        let rowCounter = 0;
+
+        function addFormItemRow(defaultProdId = '', defaultPrice = '', defaultQty = '') {
+            const container = document.getElementById('formItemsContainer');
+            const rowId = `item-row-${rowCounter++}`;
+
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'form-item-row';
+            rowDiv.id = rowId;
+
+            // Product options
+            let optionsHtml = '<option value="">-- 選擇產品 --</option>';
+            products.forEach(p => {
+                const selected = p.id === defaultProdId || p.name === defaultProdId ? 'selected' : '';
+                optionsHtml += `<option value="${p.id}" ${selected}>${p.name}</option>`;
+            });
+
+            rowDiv.innerHTML = `
+                <div style="flex: 2.2; min-width: 110px;">
+                    <select class="row-product-select" style="padding:0.45rem 0.5rem;" onchange="handleRowProductChange(this)" required>
+                        ${optionsHtml}
+                    </select>
+                </div>
+                <div style="flex: 1; min-width: 65px;">
+                    <input type="number" class="row-price-input" style="padding:0.45rem 0.5rem;" placeholder="單價" value="${defaultPrice}" min="0" oninput="handleRowPriceQtyChange(this)" required>
+                </div>
+                <div style="flex: 1; min-width: 55px;">
+                    <input type="number" class="row-qty-input" style="padding:0.45rem 0.5rem;" placeholder="數量" value="${defaultQty}" min="1" oninput="handleRowPriceQtyChange(this)" required>
+                </div>
+                <div style="flex: 1.2; text-align: right; font-family: 'Outfit'; font-weight: 700; color: var(--accent-orange); font-size: 0.85rem; padding-right: 0.25rem; white-space: nowrap;">
+                    NT$ <span class="row-subtotal-text">0</span>
+                </div>
+                <div>
+                    <button type="button" class="btn-table-icon btn-table-delete" style="width: 26px; height: 26px; border-radius: 50%;" onclick="removeFormItemRow('${rowId}')">×</button>
+                </div>
+            `;
+
+            container.appendChild(rowDiv);
+            
+            // Auto update subtotal of newly added row
+            if (defaultPrice !== '' && defaultQty !== '') {
+                const subtotalTextEl = rowDiv.querySelector('.row-subtotal-text');
+                subtotalTextEl.innerText = (Number(defaultPrice) * Number(defaultQty)).toLocaleString();
+            }
+            
+            calculateOrderGrandTotal();
+        }
+
+        function removeFormItemRow(rowId) {
+            const container = document.getElementById('formItemsContainer');
+            // Prevent removing if it is the only row left
+            if (container.children.length <= 1) {
+                showToast('無法移除品項', '一張拿貨單必須至少包含一個品項項目！', 'warning');
+                return;
+            }
+            const row = document.getElementById(rowId);
+            if (row) {
+                row.remove();
+                calculateOrderGrandTotal();
+            }
+        }
+
+        // When product changes in a row, auto-fill unit price
+        function handleRowProductChange(selectEl) {
+            const row = selectEl.closest('.form-item-row');
+            const prodId = selectEl.value;
+            const product = products.find(p => p.id === prodId);
+            
+            if (product) {
+                const priceInput = row.querySelector('.row-price-input');
+                priceInput.value = product.defaultPrice;
+                
+                // Focus qty input for faster entry
+                const qtyInput = row.querySelector('.row-qty-input');
+                if (!qtyInput.value) qtyInput.value = 1;
+            }
+            
+            updateRowSubtotal(row);
+            calculateOrderGrandTotal();
+        }
+
+        function handleRowPriceQtyChange(inputEl) {
+            const row = inputEl.closest('.form-item-row');
+            updateRowSubtotal(row);
+            calculateOrderGrandTotal();
+        }
+
+        function updateRowSubtotal(row) {
+            const price = Number(row.querySelector('.row-price-input').value) || 0;
+            const qty = Number(row.querySelector('.row-qty-input').value) || 0;
+            const subtotalTextEl = row.querySelector('.row-subtotal-text');
+            subtotalTextEl.innerText = (price * qty).toLocaleString();
+        }
+
+        function calculateOrderGrandTotal() {
+            let grandTotal = 0;
+            const rows = document.querySelectorAll('.form-item-row');
+            
+            rows.forEach(row => {
+                const price = Number(row.querySelector('.row-price-input').value) || 0;
+                const qty = Number(row.querySelector('.row-qty-input').value) || 0;
+                grandTotal += (price * qty);
+            });
+            
+            document.getElementById('orderGrandTotalDisplay').innerText = 'NT$ ' + grandTotal.toLocaleString();
+        }
+
+        // --- PAYMENT & PHOTOS ---
+        function handleModalPaymentToggle(checkbox) {
+            if (checkbox.checked) {
+                const nowStr = getLocalDateString(new Date()) + ' ' + new Date().toTimeString().split(' ')[0];
+                updateModalPaymentLabel(true, nowStr);
+            } else {
+                updateModalPaymentLabel(false, '');
+            }
+        }
+
+        function updateModalPaymentLabel(isPaid, timestamp) {
+            const timeLabel = document.getElementById('orderPaymentTimeDisplay');
+            if (isPaid) {
+                timeLabel.innerHTML = `結清時間：<span style="color:var(--color-success); font-weight:600;">${timestamp}</span>`;
+                timeLabel.dataset.time = timestamp;
+            } else {
+                timeLabel.innerHTML = '<span style="color:var(--text-secondary);">尚未付款 (掛帳中)</span>';
+                timeLabel.dataset.time = '';
+            }
+        }
+
+        function triggerPhotoUpload() {
+            document.getElementById('orderPhotoFile').click();
+        }
+
+        function handleOrderPhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 400;
+                    const MAX_HEIGHT = 400;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const base64Data = canvas.toDataURL('image/jpeg', 0.75);
+                    currentUploadedPhoto = base64Data;
+                    
+                    const preview = document.getElementById('orderPhotoPreview');
+                    preview.src = base64Data;
+                    preview.style.display = 'block';
+                    document.getElementById('removePhotoBtn').style.display = 'inline-flex';
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeUploadedPhoto() {
+            currentUploadedPhoto = '';
+            document.getElementById('orderPhotoPreview').style.display = 'none';
+            document.getElementById('orderPhotoPreview').src = '';
+            document.getElementById('removePhotoBtn').style.display = 'none';
+            document.getElementById('orderPhotoFile').value = '';
+        }
+
+        // Save order logic (Compiles dynamic rows into items array)
+        function saveOrder(event) {
+            event.preventDefault();
+
+            const orderId = document.getElementById('orderId').value;
+            const vendorId = document.getElementById('orderVendor').value;
+            const date = document.getElementById('orderDate').value;
+            const deliveryStatus = document.getElementById('orderDeliveryStatus').value;
+            const remarks = document.getElementById('orderRemarks').value.trim();
+
+            const isPaid = document.getElementById('orderPaymentStatusCheckbox').checked;
+            const paymentStatus = isPaid ? 'paid' : 'unpaid';
+            const paidAt = isPaid ? (document.getElementById('orderPaymentTimeDisplay').dataset.time || getLocalDateString(new Date())) : '';
+
+            // Extract all form item rows
+            const rows = document.querySelectorAll('.form-item-row');
+            const items = [];
+            let calculatedGrandTotal = 0;
+
+            let rowValidationError = false;
+
+            rows.forEach(row => {
+                const prodId = row.querySelector('.row-product-select').value;
+                const price = Number(row.querySelector('.row-price-input').value);
+                const qty = Number(row.querySelector('.row-qty-input').value);
+
+                const product = products.find(p => p.id === prodId);
+
+                if (!prodId || price < 0 || qty <= 0) {
+                    rowValidationError = true;
+                    return;
+                }
+
+                const rowTotal = price * qty;
+                calculatedGrandTotal += rowTotal;
+
+                items.push({
+                    productId: prodId,
+                    productName: product ? product.name : '未知商品',
+                    price: price,
+                    quantity: qty,
+                    total: rowTotal
+                });
+            });
+
+            if (!vendorId || !date || items.length === 0 || rowValidationError) {
+                showToast('儲存失敗', '請選擇客戶、日期並填寫完整的品項價格與數量！', 'danger');
+                return;
+            }
+
+            const vendorObj = vendors.find(v => v.id === vendorId);
+            const vendorName = vendorObj ? vendorObj.name : '下游攤商';
+
+            if (orderId) {
+                // Update
+                const index = orders.findIndex(o => o.id === orderId);
+                if (index !== -1) {
+                    orders[index] = { 
+                        id: orderId, vendorId, date, items, total: calculatedGrandTotal, 
+                        paymentStatus, paidAt, deliveryStatus, remarks, photo: currentUploadedPhoto 
+                    };
+                    saveOrdersToDB();
+                    showToast('已更新拿貨單', `成功修改 ${vendorName} 的 ${items.length} 個品項拿貨單`, 'success');
+                }
+            } else {
+                // Insert
+                const newOrder = {
+                    id: 'o-' + Date.now(),
+                    vendorId, date, items, total: calculatedGrandTotal, 
+                    paymentStatus, paidAt, deliveryStatus, remarks, photo: currentUploadedPhoto
+                };
+                orders.push(newOrder);
+                saveOrdersToDB();
+                showToast('登錄多品項拿貨成功', `已建立 ${vendorName} 的多品項進貨紀錄，合計 NT$ ${calculatedGrandTotal.toLocaleString()}`, 'success');
+            }
+
+            closeOrderModal();
+            renderAll();
+        }
+
+        function editOrder(orderId) {
+            openOrderModal(orderId);
+        }
+
+        function deleteOrder(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (!order) return;
+            const vendorObj = vendors.find(v => v.id === order.vendorId);
+            const clientName = vendorObj ? vendorObj.name : '未知客戶';
+
+            if (confirm(`確定要刪除該筆 ${order.date} 包含 ${order.items.length} 品項的 ${clientName} 拿貨記錄嗎？`)) {
+                orders = orders.filter(o => o.id !== orderId);
+                saveOrdersToDB();
+                showToast('記錄已刪除', '該筆交易明細已自資料庫中移除', 'warning');
+                renderAll();
+            }
+        }
+
+        // ==========================================================================
+        // 8. Settings Sub-Section rendering & Actions
+        // ==========================================================================
+        function renderSettingsLists() {
+            renderSettingsProductList();
+            renderSettingsVendorList();
+        }
+
+        // 8.1 PRODUCT MGMT
+        function renderSettingsProductList() {
+            const container = document.getElementById('settingsProductList');
+            container.innerHTML = '';
+
+            const sorted = [...products].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-TW'));
+            
+            if (sorted.length === 0) {
+                container.innerHTML = '<div style="font-size:0.8rem;color:var(--text-secondary);text-align:center;padding:1rem;">尚無設定產品品項</div>';
+                return;
+            }
+
+            sorted.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'mgmt-item';
+                div.innerHTML = `
+                    <div class="mgmt-item-info">
+                        <span class="mgmt-item-title">${p.name}</span>
+                        <span class="mgmt-item-sub">預設價格：NT$ ${p.defaultPrice} / ${p.unit}</span>
+                    </div>
+                    <div class="actions-cell">
+                        <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="loadProductToForm('${p.id}')">編輯</button>
+                        <button type="button" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="deleteProduct('${p.id}')">刪除</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function loadProductToForm(productId) {
+            const p = products.find(item => item.id === productId);
+            if (!p) return;
+
+            document.getElementById('productId').value = p.id;
+            document.getElementById('productName').value = p.name;
+            document.getElementById('productUnit').value = p.unit;
+            document.getElementById('productDefaultPrice').value = p.defaultPrice;
+            document.getElementById('productSubmitBtn').innerText = '儲存產品';
+        }
+
+        function resetProductForm() {
+            document.getElementById('productForm').reset();
+            document.getElementById('productId').value = '';
+            document.getElementById('productSubmitBtn').innerText = '新增產品';
+        }
+
+        function saveProduct(event) {
+            event.preventDefault();
+
+            const pId = document.getElementById('productId').value;
+            const name = document.getElementById('productName').value.trim();
+            const unit = document.getElementById('productUnit').value.trim();
+            const defaultPrice = Number(document.getElementById('productDefaultPrice').value);
+
+            if (!name || !unit || defaultPrice < 0) {
+                showToast('產品儲存失敗', '請確認規格數值輸入正確', 'danger');
+                return;
+            }
+
+            if (pId) {
+                const idx = products.findIndex(p => p.id === pId);
+                if (idx !== -1) {
+                    products[idx] = { id: pId, name, unit, defaultPrice };
+                    saveProductsToDB();
+                    showToast('產品修改成功', `品項「${name}」已更新`, 'success');
+                }
+            } else {
+                const newP = { id: 'p-' + Date.now(), name, unit, defaultPrice };
+                products.push(newP);
+                saveProductsToDB();
+                showToast('產品新增成功', `已加入全新產品「${name}」`, 'success');
+            }
+
+            resetProductForm();
+            renderSettingsProductList();
+            renderAll();
+        }
+
+        function deleteProduct(productId) {
+            const p = products.find(item => item.id === productId);
+            if (!p) return;
+
+            const orderCount = orders.filter(o => o.items.some(item => item.productName === p.name)).length;
+            let warnMsg = `確定要刪除品項「${p.name}」嗎？`;
+            if (orderCount > 0) {
+                warnMsg = `⚠️ 警告！此產品目前有 ${orderCount} 筆拿貨歷史紀錄。\n刪除將導致訂單失去參照關係。\n\n確定要刪除嗎？`;
+            }
+
+            if (confirm(warnMsg)) {
+                products = products.filter(item => item.id !== productId);
+                saveProductsToDB();
+                showToast('產品已移除', `產品「${p.name}」已清空`, 'warning');
+                resetProductForm();
+                renderSettingsProductList();
+                renderAll();
+            }
+        }
+
+        // 8.2 VENDOR MGMT
+        function renderSettingsVendorList() {
+            const container = document.getElementById('settingsVendorList');
+            container.innerHTML = '';
+
+            const sorted = [...vendors].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hans-TW'));
+
+            if (sorted.length === 0) {
+                container.innerHTML = '<div style="font-size:0.8rem;color:var(--text-secondary);text-align:center;padding:1rem;">尚無登記客戶名單</div>';
+                return;
+            }
+
+            sorted.forEach(v => {
+                const totalOrders = orders.filter(o => o.vendorId === v.id).length;
+
+                const div = document.createElement('div');
+                div.className = 'mgmt-item';
+                div.innerHTML = `
+                    <div class="mgmt-item-info">
+                        <span class="mgmt-item-title">${v.name}</span>
+                        <span class="mgmt-item-sub">📞 ${v.phone || '無電話'} | 📍 ${v.address || '無'} (${totalOrders} 筆訂單)</span>
+                    </div>
+                    <div class="actions-cell">
+                        <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="loadVendorToForm('${v.id}')">編輯</button>
+                        <button type="button" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="deleteVendor('${v.id}')">刪除</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function loadVendorToForm(vendorId) {
+            const v = vendors.find(item => item.id === vendorId);
+            if (!v) return;
+
+            document.getElementById('vendorId').value = v.id;
+            document.getElementById('vendorName').value = v.name;
+            document.getElementById('vendorPhone').value = v.phone || '';
+            document.getElementById('vendorAddress').value = v.address || '';
+            document.getElementById('vendorRemarks').value = v.remarks || '';
+            document.getElementById('vendorSubmitBtn').innerText = '儲存客戶';
+        }
+
+        function resetVendorForm() {
+            document.getElementById('vendorForm').reset();
+            document.getElementById('vendorId').value = '';
+            document.getElementById('vendorSubmitBtn').innerText = '新增客戶';
+        }
+
+        function saveVendor(event) {
+            event.preventDefault();
+
+            const vId = document.getElementById('vendorId').value;
+            const name = document.getElementById('vendorName').value.trim();
+            const phone = document.getElementById('vendorPhone').value.trim();
+            const address = document.getElementById('vendorAddress').value.trim();
+            const remarks = document.getElementById('vendorRemarks').value.trim();
+
+            if (!name) {
+                showToast('攤商儲存失敗', '請確認姓名已填寫', 'danger');
+                return;
+            }
+
+            if (vId) {
+                const idx = vendors.findIndex(v => v.id === vId);
+                if (idx !== -1) {
+                    vendors[idx] = { id: vId, name, phone, address, remarks };
+                    saveVendorsToDB();
+                    showToast('客戶資料修改成功', `下游客戶「${name}」已更新`, 'success');
+                }
+            } else {
+                const newV = { id: 'v-' + Date.now(), name, phone, address, remarks };
+                vendors.push(newV);
+                saveVendorsToDB();
+                showToast('客戶建檔成功', `新下游客戶「${name}」已加入名單`, 'success');
+            }
+
+            resetVendorForm();
+            renderSettingsVendorList();
+            renderAll();
+        }
+
+        function deleteVendor(vendorId) {
+            const v = vendors.find(item => item.id === vendorId);
+            if (!v) return;
+
+            const vendorOrders = orders.filter(o => o.vendorId === vendorId);
+            let confirmMsg = `確定要將下游攤商「${v.name}」刪除嗎？`;
+            if (vendorOrders.length > 0) {
+                confirmMsg = `⚠️ 警告！「${v.name}」目前有 ${vendorOrders.length} 筆拿貨歷史訂單。\n刪除將破壞歷史連結。\n\n確定要刪除嗎？`;
+            }
+
+            if (confirm(confirmMsg)) {
+                vendors = vendors.filter(item => item.id !== vendorId);
+                saveVendorsToDB();
+                showToast('客戶已移除', `攤商「${v.name}」已移除`, 'warning');
+                resetVendorForm();
+                renderSettingsVendorList();
+                renderAll();
+            }
+        }
+
+        function resetDatabaseToDefault() {
+            if (confirm('⚠️ 您確定要將全系統初始化嗎？\n這會清除所有自訂產品、客戶與相片紀錄，並重新載入預設的展示訂單資料！')) {
+                localStorage.removeItem(DB_KEY_VENDORS);
+                localStorage.removeItem(DB_KEY_PRODUCTS);
+                localStorage.removeItem(DB_KEY_ORDERS);
+                loadDatabase();
+                renderSettingsLists();
+                renderAll();
+                showToast('資料庫初始化完畢', '已成功回復展示資料', 'success');
+            }
+        }
+
+        // ==========================================================================
+        // 9. Receipt Photo Lightbox Viewer Overlay
+        // ==========================================================================
+        function viewFullPhoto(photoBase64, captionText) {
+            const lightbox = document.getElementById('lightboxViewer');
+            const img = document.getElementById('lightboxImg');
+            const caption = document.getElementById('lightboxCaption');
+            
+            img.src = photoBase64;
+            caption.innerText = captionText;
+            lightbox.classList.add('active');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightboxViewer').classList.remove('active');
+        }
+
+        // ==========================================================================
+        // 10. Data Backups & CSV Export
+        // ==========================================================================
+        function exportCSV() {
+            let csvContent = '\uFEFF'; // UTF-8 BOM
+            
+            // Header Row
+            const headers = ['交易日期', '下游客戶名稱', '產品種類', '單價', '拿貨數量', '品項總計', '拿貨單總額', '付款狀態', '付款時間', '出貨狀態', '備註說明'];
+            csvContent += headers.map(h => `"${h}"`).join(',') + '\r\n';
+
+            const exportList = getFilteredOrderData().sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            // Renders repeating metadata flat-rows for multiple items inside an order
+            exportList.forEach(order => {
+                const vendorObj = vendors.find(v => v.id === order.vendorId);
+                const vendorName = vendorObj ? vendorObj.name : '未知客戶';
+                const payment = order.paymentStatus === 'paid' ? '已結清' : '未結清';
+                const paidTime = order.paidAt || '無';
+                const delivery = order.deliveryStatus === 'shipped' ? '已出貨' : '待出貨';
+
+                order.items.forEach(item => {
+                    const row = [
+                        order.date,
+                        vendorName,
+                        item.productName,
+                        item.price,
+                        item.quantity,
+                        item.total,
+                        order.total,
+                        payment,
+                        paidTime,
+                        delivery,
+                        order.remarks || ''
+                    ];
+                    csvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',') + '\r\n';
+                });
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const todayStr = getLocalDateString(new Date());
+
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `七里香下游拿貨紀錄報表_${todayStr}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('匯出 Excel 成功', 'CSV 報表已自動打包下載，已展開所有品項明細', 'success');
+        }
+
+        function exportBackup() {
+            const backupObj = {
+                version: '1.3',
+                exportDate: new Date().toISOString(),
+                vendors,
+                products,
+                orders,
+                theme: document.body.getAttribute('data-theme'),
+                fontScale: localStorage.getItem(CONFIG_FONT_KEY) || '16px'
+            };
+
+            const blob = new Blob([JSON.stringify(backupObj, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            const todayStr = getLocalDateString(new Date());
+
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `七里香系統備份_${todayStr}.json`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('備份已儲存', '系統資料庫 JSON 備份檔已下載', 'success');
+        }
+
+        function triggerImport() {
+            document.getElementById('importFileInput').click();
+        }
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    
+                    if (parsed.vendors && Array.isArray(parsed.vendors) && 
+                        parsed.products && Array.isArray(parsed.products) &&
+                        parsed.orders && Array.isArray(parsed.orders)) {
+                        
+                        if (confirm(`還原操作將會覆蓋您目前的資料庫！確定讀取此備份進行還原嗎？`)) {
+                            vendors = parsed.vendors;
+                            products = parsed.products;
+                            orders = parsed.orders;
+                            
+                            saveVendorsToDB();
+                            saveProductsToDB();
+                            saveOrdersToDB();
+
+                            if (parsed.fontScale) changeFontSize(parsed.fontScale, false);
+                            if (parsed.theme) document.body.setAttribute('data-theme', parsed.theme);
+                            
+                            // Re-migrate just in case importing old schema backup
+                            loadDatabase();
+                            
+                            renderAll();
+                            renderSettingsLists();
+                            showToast('還原完畢', '資料庫已成功同步最新備份', 'success');
+                        }
+                    } else {
+                        showToast('還原失敗', '備份檔結構缺少必要表格', 'danger');
+                    }
+                } catch (err) {
+                    showToast('解析備份檔失敗', '檔案可能損毀，請確認格式', 'danger');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ==========================================================================
+        // 11. Utilities
+        // ==========================================================================
+        function getLocalDateString(dateObj) {
+            const year = dateObj.getFullYear();
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const date = String(dateObj.getDate()).padStart(2, '0');
+            return `${year}-${month}-${date}`;
+        }
+
+        function showToast(title, desc, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            let icon = '🔔';
+            if (type === 'success') icon = '🟢';
+            else if (type === 'danger') icon = '🔴';
+            else if (type === 'warning') icon = '🟡';
+            else if (type === 'info') icon = '🔵';
+
+            toast.innerHTML = `
+                <div style="font-size: 1.15rem; display: flex; align-items: center;">${icon}</div>
+                <div class="toast-content">
+                    <div class="toast-title" style="font-weight: 700;">${title}</div>
+                    <div class="toast-desc" style="margin-top: 0.1rem; line-height: 1.3;">${desc}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 50);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
